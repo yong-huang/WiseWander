@@ -29,37 +29,6 @@ export function registerBrowserIpc(): void {
     return tabManager.getTab(tabId)
   })
 
-  ipcMain.handle(IPC_CHANNELS.TAB_RESTORE, async () => {
-    return tabManager.restoreTab()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TAB_REORDER, async (_event, tabIds: string[]) => {
-    return tabManager.reorderTabs(tabIds)
-  })
-
-  // ── Navigation ──
-  ipcMain.handle(IPC_CHANNELS.NAVIGATE, async (_event, tabId: string, url: string) => {
-    // Navigation handled in renderer via webview; just record history
-    historyService.add({ url, title: '' })
-  })
-
-  ipcMain.handle(IPC_CHANNELS.NAVIGATE_BACK, async (_event, _tabId: string) => {
-    // Renderer handles via webview.goBack()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.NAVIGATE_FORWARD, async (_event, _tabId: string) => {
-    // Renderer handles via webview.goForward()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.NAVIGATE_RELOAD, async (_event, _tabId: string, _ignoreCache?: boolean) => {
-    // Renderer handles via webview.reload()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.PAGE_CONTEXT, async (_event) => {
-    // Context extraction happens in renderer, forwarded here if needed
-    return null
-  })
-
   // ── Bookmarks ──
   ipcMain.handle(IPC_CHANNELS.BOOKMARK_ADD, async (_event, title: string, url: string) => {
     return bookmarkService.toggle({ title, url })

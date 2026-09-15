@@ -100,8 +100,10 @@ test('can create a new tab from empty state', async () => {
   }
   await expect(window.locator('text=Open a new tab to start browsing')).toBeVisible({ timeout: 5_000 })
 
-  // From the empty state, click the "New Tab" button
-  await window.locator('button:has-text("New Tab")').click()
+  // From the empty state, click the "New Tab" button.
+  // .last() keeps this resilient: a late-restored session tab also renders a
+  // button whose text can match, and the empty-state button is the last match.
+  await window.locator('button:has-text("New Tab")').last().click()
   await window.waitForTimeout(500)
 
   // A new tab should appear

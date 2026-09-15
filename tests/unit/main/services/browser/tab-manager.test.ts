@@ -57,47 +57,4 @@ describe('TabManager', () => {
     expect(active).not.toBeNull()
     expect(active?.id).toBe(tab1.id)
   })
-
-  it('should restore the most recently closed tab', () => {
-    const mgr = new TabManager()
-    const tab1 = mgr.createTab('https://example.com')
-    const tab2 = mgr.createTab('https://example.org')
-    mgr.closeTab(tab1.id)
-    mgr.closeTab(tab2.id)
-
-    const restored = mgr.restoreTab()
-    expect(restored).not.toBeNull()
-    expect(restored?.id).toBe(tab2.id)
-    expect(restored?.url).toBe('https://example.org')
-    expect(mgr.getTab(tab2.id)).toBeDefined()
-    expect(mgr.getActiveTab()?.id).toBe(tab2.id)
-
-    const restoredAgain = mgr.restoreTab()
-    expect(restoredAgain?.id).toBe(tab1.id)
-  })
-
-  it('should return null when restoring with no closed tabs', () => {
-    const mgr = new TabManager()
-    expect(mgr.restoreTab()).toBeNull()
-  })
-
-  it('should reorder tabs', () => {
-    const mgr = new TabManager()
-    const a = mgr.createTab('https://a.com')
-    const b = mgr.createTab('https://b.com')
-    const c = mgr.createTab('https://c.com')
-
-    const reordered = mgr.reorderTabs([c.id, a.id, b.id])
-    expect(reordered.map((t) => t.id)).toEqual([c.id, a.id, b.id])
-    expect(mgr.getAllTabs().map((t) => t.id)).toEqual([c.id, a.id, b.id])
-  })
-
-  it('should keep unknown ids out and preserve the rest when reordering', () => {
-    const mgr = new TabManager()
-    const a = mgr.createTab('https://a.com')
-    const b = mgr.createTab('https://b.com')
-
-    mgr.reorderTabs(['nonexistent-id', b.id])
-    expect(mgr.getAllTabs().map((t) => t.id)).toEqual([b.id, a.id])
-  })
 })

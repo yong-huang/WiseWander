@@ -3,15 +3,8 @@ export const IPC_CHANNELS = {
   TAB_CREATE: 'tab:create',
   TAB_CLOSE: 'tab:close',
   TAB_ACTIVATE: 'tab:activate',
-  TAB_RESTORE: 'tab:restore',
-  TAB_REORDER: 'tab:reorder',
-  NAVIGATE: 'browser:navigate',
-  NAVIGATE_BACK: 'browser:navigate:back',
-  NAVIGATE_FORWARD: 'browser:navigate:forward',
-  NAVIGATE_RELOAD: 'browser:navigate:reload',
   RELOAD_ACTIVE_TAB: 'main:reload-active-tab',
   OPEN_SETTINGS: 'main:open-settings',
-  PAGE_CONTEXT: 'browser:page-context',
 
   // AI
   AI_CHAT_SEND: 'ai:chat:send',
@@ -68,11 +61,6 @@ export const IPC_CHANNELS = {
   WORKSPACE_LIST: 'workspace:list',
   WORKSPACE_DELETE: 'workspace:delete',
 
-  // Cloud model config
-  CLOUD_CONFIG_GET: 'cloud:config:get',
-  CLOUD_CONFIG_SET: 'cloud:config:set',
-  CLOUD_CONFIG_TEST: 'cloud:config:test',
-
   // Providers
   PROVIDERS_CONFIG_GET: 'providers:config:get',
   PROVIDERS_CONFIG_SET: 'providers:config:set',
@@ -81,8 +69,6 @@ export const IPC_CHANNELS = {
   PROVIDERS_PRIORITY_SET: 'providers:priority:set',
 
   // Research
-  RESEARCH_EXECUTE: 'research:execute',
-  RESEARCH_REPORT: 'research:report',
 
   // Capability
   CAPABILITY_ANALYZE_DESIGN: 'capability:analyze-design',
@@ -141,6 +127,8 @@ export const IPC_CHANNELS = {
   MONITOR_HISTORY: 'monitor:history',
   MONITOR_CHECK_NOW: 'monitor:check-now',
   MONITOR_CHANGE_DETECTED: 'monitor:change-detected',
+
+  RESEARCH_EXECUTE: 'research:execute',
 
   // Research Workbench
   RESEARCH_PROJECT_CREATE: 'research:project:create',

@@ -6,7 +6,6 @@ describe('IPC_CHANNELS', () => {
     expect(IPC_CHANNELS.TAB_CREATE).toBeDefined()
     expect(IPC_CHANNELS.TAB_CLOSE).toBeDefined()
     expect(IPC_CHANNELS.TAB_ACTIVATE).toBeDefined()
-    expect(IPC_CHANNELS.NAVIGATE).toBeDefined()
   })
 
   it('should have all AI channels', () => {

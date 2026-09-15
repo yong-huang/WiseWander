@@ -6,16 +6,6 @@ const api = {
   tabCreate: (url?: string) => ipcRenderer.invoke(IPC_CHANNELS.TAB_CREATE, url),
   tabClose: (tabId: string) => ipcRenderer.invoke(IPC_CHANNELS.TAB_CLOSE, tabId),
   tabActivate: (tabId: string) => ipcRenderer.invoke(IPC_CHANNELS.TAB_ACTIVATE, tabId),
-  tabRestore: () => ipcRenderer.invoke(IPC_CHANNELS.TAB_RESTORE),
-  tabReorder: (tabIds: string[]) =>
-    ipcRenderer.invoke(IPC_CHANNELS.TAB_REORDER, tabIds),
-
-  // ── Browser: Navigation ──
-  navigate: (tabId: string, url: string) => ipcRenderer.invoke(IPC_CHANNELS.NAVIGATE, tabId, url),
-  navigateBack: (tabId: string) => ipcRenderer.invoke(IPC_CHANNELS.NAVIGATE_BACK, tabId),
-  navigateForward: (tabId: string) => ipcRenderer.invoke(IPC_CHANNELS.NAVIGATE_FORWARD, tabId),
-  navigateReload: (tabId: string, ignoreCache?: boolean) =>
-    ipcRenderer.invoke(IPC_CHANNELS.NAVIGATE_RELOAD, tabId, ignoreCache),
   onReloadActiveTab: (callback: (ignoreCache: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, ignoreCache: boolean) => callback(ignoreCache)
     ipcRenderer.on(IPC_CHANNELS.RELOAD_ACTIVE_TAB, handler)
@@ -120,12 +110,6 @@ const api = {
   workspaceDelete: (workspaceName: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.WORKSPACE_DELETE, workspaceName),
 
-  // ── Cloud Config ──
-  cloudConfigGet: () => ipcRenderer.invoke(IPC_CHANNELS.CLOUD_CONFIG_GET),
-  cloudConfigSet: (config: { provider: string; apiKey: string; model: string }) =>
-    ipcRenderer.invoke(IPC_CHANNELS.CLOUD_CONFIG_SET, config),
-  cloudConfigTest: () => ipcRenderer.invoke(IPC_CHANNELS.CLOUD_CONFIG_TEST),
-
   // ── Providers ──
   providersConfigGet: () => ipcRenderer.invoke(IPC_CHANNELS.PROVIDERS_CONFIG_GET),
   providersConfigSet: (config: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROVIDERS_CONFIG_SET, config),
@@ -136,7 +120,6 @@ const api = {
   // ── Research ──
   researchExecute: (topic: string, tabUrls: string[]) =>
     ipcRenderer.invoke(IPC_CHANNELS.RESEARCH_EXECUTE, topic, tabUrls),
-  researchGetReport: () => ipcRenderer.invoke(IPC_CHANNELS.RESEARCH_REPORT),
 
   // ── Capability ──
   capabilityAnalyzeDesign: (styleData: unknown) =>

@@ -6,7 +6,6 @@ import type { ResearchResult } from '../services/research/research-engine'
 import type { ModelRouter } from '../services/ai/router'
 
 let researchEngine: ResearchEngine | null = null
-let latestReport: ResearchResult | null = null
 let workbench: ResearchWorkbench | null = null
 
 export function registerResearchIpc(modelRouter: ModelRouter): void {
@@ -19,15 +18,9 @@ export function registerResearchIpc(modelRouter: ModelRouter): void {
       if (!researchEngine) {
         throw new Error('Research engine not initialized')
       }
-      const result = await researchEngine.research(topic, tabUrls)
-      latestReport = result
-      return result
+      return researchEngine.research(topic, tabUrls)
     },
   )
-
-  ipcMain.handle(IPC_CHANNELS.RESEARCH_REPORT, async (): Promise<ResearchResult | null> => {
-    return latestReport
-  })
 
   // ── Research Workbench ──
 

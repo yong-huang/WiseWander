@@ -3,7 +3,6 @@ export const DEFAULT_MODEL = 'llama3.2'
 export const MAX_CONTEXT_CHARS = 8_000
 export const SUMMARY_CONTEXT_CHARS = 12_000
 export const MAX_RECENTLY_CLOSED = 20
-export const SIDEBAR_DEFAULT_WIDTH = 380
 export const OPENAI_COMPATIBLE_DEFAULT_URL = 'http://localhost:1234'
 export const PROVIDERS_CONFIG_KEY = 'providers'
 export const DB_NAME = 'data.db'

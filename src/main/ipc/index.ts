@@ -72,26 +72,6 @@ export function registerIpcHandlers(): void {
     return configStore.get(key as never)
   })
 
-  // ── Cloud Config (legacy backward compat) ──
-  ipcMain.handle(IPC_CHANNELS.CLOUD_CONFIG_GET, async () => {
-    return modelRouter.getCloudConfig()
-  })
-
-  ipcMain.handle(
-    IPC_CHANNELS.CLOUD_CONFIG_SET,
-    async (
-      _event,
-      config: { provider: string; apiKey: string; model: string }
-    ) => {
-      modelRouter.setCloudConfig(config as never)
-      return { success: true }
-    }
-  )
-
-  ipcMain.handle(IPC_CHANNELS.CLOUD_CONFIG_TEST, async () => {
-    return modelRouter.testCloudConnection()
-  })
-
   // ── Providers ──
   ipcMain.handle(IPC_CHANNELS.PROVIDERS_CONFIG_GET, async () => {
     return modelRouter.getProvidersConfig()

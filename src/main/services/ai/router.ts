@@ -222,18 +222,6 @@ export class ModelRouter {
     }
   }
 
-  setCloudConfig(config: CloudConfig): void {
-    this.configStore.set(CLOUD_CONFIG_KEY as never, config as never)
-  }
-
-  async testCloudConnection(): Promise<{ ok: boolean; error?: string }> {
-    const config = this.getCloudConfig()
-    if (config.provider === 'disabled' || !config.apiKey || !config.model) {
-      return { ok: false, error: 'Cloud provider not configured' }
-    }
-    return this.cloudClient.testConnection(config.provider, config.apiKey, config.model)
-  }
-
   // ── Private helpers ──
 
   /**

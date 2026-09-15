@@ -307,8 +307,6 @@ export interface WebviewContextParams {
     canUndo: boolean; canRedo: boolean; canCut: boolean; canCopy: boolean
     canPaste: boolean; canDelete: boolean; canSelectAll: boolean
   }
-  frameType?: string
-  pageEncoding?: string
 }
 
 export type ContextMenuAction =

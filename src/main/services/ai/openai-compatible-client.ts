@@ -1,4 +1,5 @@
 import type { ChatMessage } from '../../../shared/types'
+import { OPENAI_COMPATIBLE_DEFAULT_URL } from '../../../shared/constants'
 
 interface OpenAICompatibleConfig {
   baseUrl: string
@@ -18,7 +19,7 @@ export class OpenAICompatibleClient {
 
   constructor(config?: Partial<OpenAICompatibleConfig>) {
     this.config = {
-      baseUrl: config?.baseUrl ?? 'http://localhost:1234',
+      baseUrl: config?.baseUrl ?? OPENAI_COMPATIBLE_DEFAULT_URL,
       apiKey: config?.apiKey ?? '',
       model: config?.model ?? '',
     }

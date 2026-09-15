@@ -49,9 +49,9 @@
 | Vitest | 3.x | 单元测试 + 集成测试运行器 |
 | @electron-vitest | 最新 | Electron 环境下的集成测试 |
 | Playwright | 1.50+ | E2E 测试（浏览器自动化） |
-| @testing-library/react | 最新 | React 组件测试工具 |
-| msw | 最新 | HTTP Mock（模拟 Ollama API） |
-| faker | 最新 | 测试数据生成 |
+| @testing-library/react | 最新 | React 组件测试工具（规划选型，当前未引入） |
+| msw | 最新 | HTTP Mock（模拟 Ollama API；规划选型，当前未引入，Ollama mock 由手写 stub 承担） |
+| faker | 最新 | 测试数据生成（规划选型，当前未引入） |
 
 ### 2.2 配置文件
 
@@ -993,11 +993,18 @@ export function createTestDB(): Database.Database {
 
 | 套件 | 命令 | 现状 |
 |------|------|------|
-| 单元 | `npm run test:unit` | ✅ 67 通过 / 7 文件（覆盖 prompt-builder、tab-manager（含 restore/reorder）、tool-registry、ipc-channels、ai-smart-tab-name、capability-crawl store、web-crawler 16 例） |
-| 集成 | `npm run test:integration` | ✅ 45 通过 / 3 文件（capability-crawl、capability-md-export、html-to-markdown；`tests/setup`、`tests/integration/database|ipc|ollama` 仍为空目录，属规划未实现） |
+| 单元 | `npm run test:unit` | ✅ 63 通过 / 7 文件（覆盖 prompt-builder、tab-manager、tool-registry、ipc-channels、ai-smart-tab-name、capability-crawl store、web-crawler 16 例） |
+| 集成 | `npm run test:integration` | ✅ 45 通过 / 3 文件（capability-crawl、capability-md-export、html-to-markdown） |
 | E2E | `npm run test:e2e` | 19 个 spec；需先 `npm run build` 且本机运行 Ollama（AI 系列真实调用） |
 | 类型 | `npm run typecheck` | ✅ 双 tsconfig 真实检查（旧脚本为空操作，已修复） |
 | Lint | `npm run lint` | ✅ ESLint 9 flat config，0 错误（此前 eslint 未安装，已补装） |
 
 已删除的测试：`stream-handler.test.ts`（随死代码 StreamHandler 一并移除）。
 覆盖率配置仍仅统计 `src/main/services` 与 `src/shared`；渲染进程组件暂无单测（与 §3.2 的豁免一致）。
+
+### 8.1 2026-09-15 第二次清理
+
+- 移除无调用方的依赖：`@faker-js/faker`、`msw`、`@testing-library/react`、`@testing-library/jest-dom`（§2.1 保留为规划选型注记）
+- 清理 16 个规划遗留的空目录（`tests/setup/`、`tests/fixtures/*/`、`tests/e2e/{ai,agent,browser,privacy}/` 等）
+- 安装 `electron-builder` 并修复 `postinstall`（此前脚本引用不存在的二进制；现在 `npm install` 后 better-sqlite3 会被正确重编译为 Electron ABI）
+- 移除无调用方的死 IPC 端点与 preload 方法（导航四件套、`tab:restore/reorder`、legacy `cloud:config:*`、`research:report`），详见 DESIGN.md §10.3

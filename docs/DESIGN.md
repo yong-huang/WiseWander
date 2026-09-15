@@ -997,7 +997,7 @@ const DEFAULT_CONFIG = {
 | AI 路由 | `ollama.baseUrl` 配置真正生效（`buildAdapters` 时应用到共享 client）；聊天失败时使健康缓存失效并故障转移（此前 30s 内重复撞同一离线 provider）；Anthropic 健康检查改为离线校验（此前每次探测都是计费请求） |
 | Agent | Planner 的模型改为惰性读取（此前启动时固化）；移除每次规划写 `/tmp` 的调试遗留 |
 | 工程化 | `typecheck` 脚本从空操作改为双 tsconfig 检查（暴露并修复 8 个主进程 + 45 个渲染进程既有类型错误）；补装 ESLint 9 并新增 flat config（此前 lint 脚本引用不存在的二进制）；清理全部 lint 错误 |
-| 结构 | AI 单例移至 `services/ai/router-instance.ts`，消除 service→ipc 循环依赖；删除死代码：`Executor`、`StreamHandler`(+test)、`context-extractor`、`Modal.tsx`、`conversations/messages` 表、未用常量与 `rehype-raw` 依赖；TabManager 实现真实 `restoreTab/reorderTabs` |
+| 结构 | AI 单例移至 `services/ai/router-instance.ts`，消除 service→ipc 循环依赖；删除死代码：`Executor`、`StreamHandler`(+test)、`context-extractor`、`Modal.tsx`、`conversations/messages` 表、未用常量与 `rehype-raw` 依赖；标签恢复/重排由渲染进程 recently-closed 栈承担（BR-006），主进程不做重复实现 |
 
 ### 10.2 与设计文档的已知偏差（有意保留）
 
@@ -1006,3 +1006,17 @@ const DEFAULT_CONFIG = {
 - Anthropic 健康检查为离线校验（配置了 key 即视为在线），失败靠真实请求的故障转移兜底
 - Agent 规划固定使用本地 Ollama 直连（隐私取向），不参与云兜底路由
 - 构建管线会把源码中的 `require()` 转换为 `createRequire`，但仍建议直接使用 ESM `import`
+- `tab-store` 持久化用的 sessionStorage 在 Electron 中可能跨应用实例从磁盘恢复（Chromium session 目录），表现为"上次会话的标签"在新启动时迟到恢复；App 的会话恢复分支依赖此行为，E2E 中对空状态后的标签计数做了时序免疫处理
+
+### 10.3 死代码清理（2026-09-15 第二次全面审计）
+
+以"每个 IPC 通道必须有真实发送方与接收方"为原则清理：
+
+| 类别 | 内容 |
+|------|------|
+| 死 IPC 端点 | 移除 `browser:navigate*` 四件套与 `browser:page-context`（导航由 renderer 直接调 webview 方法，历史由 `historyAdd` 记录）；移除 `tab:restore`/`tab:reorder`（renderer 的 recently-closed 栈已覆盖，TabManager 恢复为纯元数据）；移除 legacy `cloud:config:*` 三件套（首启迁移逻辑保留在 router 内部，孤儿方法 `setCloudConfig`/`testCloudConnection` 一并移除）；移除 `research:report`（`research:execute` 已同步返回报告） |
+| 未用常量 | `SIDEBAR_DEFAULT_WIDTH` 删除；`OPENAI_COMPATIBLE_DEFAULT_URL` 改为被 openai-compatible-client 实际引用 |
+| 类型清理 | `WebviewContextParams` 移除不再传输的 `frameType`/`pageEncoding` 字段 |
+| 依赖 | 卸载无引用的 `@faker-js/faker`、`msw`、`@testing-library/react`、`@testing-library/jest-dom`（TEST.md §2.1 保留为规划选型注记） |
+| 工程 | 安装 `electron-builder` 修复 `postinstall`（此前引用不存在的二进制；现在 `npm install` 后 better-sqlite3 自动重编译为 Electron ABI） |
+| 目录 | 删除 16 个规划遗留空目录（`tests/setup/`、`tests/fixtures/*/` 等）与 `playwright-report/`、`test-results/` 生成物 |

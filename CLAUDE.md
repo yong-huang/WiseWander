@@ -43,8 +43,8 @@ Interactive diagrams (generated with archify, open in a browser):
 
 **Pages live in renderer-side `<webview>` tags** (`webviewTag: true`, `partition="persist:wisewander"`), not in WebContentsView. Consequences:
 
-- The main-process `TabManager` (`src/main/services/browser/tab-manager.ts`) only tracks metadata (it also keeps a closed-tabs stack for `tab:restore`).
-- Navigation/back/forward/reload are driven by the renderer calling webview methods directly; the `browser:navigate*` IPC handlers are intentionally no-ops (except history recording).
+- The main-process `TabManager` (`src/main/services/browser/tab-manager.ts`) only tracks metadata. Tab restore/reorder are implemented renderer-side (`tab-store` keeps a recently-closed stack); there are no main-process IPC endpoints for them.
+- Navigation/back/forward/reload are driven by the renderer calling webview methods directly; there are no IPC endpoints for them (history recording happens via `historyAdd` in the renderer's URL-update handler).
 - Agent tools reach the page through `webContents.fromId(webContentsId)` + `loadURL`/`executeJavaScript` — a second, main-process path that coexists with renderer-side webview calls.
 
 ### Data Flow
@@ -80,7 +80,7 @@ All channels are constants in `src/shared/ipc-channels.ts` (~90 channels). Strea
   - `capability/` — design-analyzer, web-crawler, screenshot (scroll-and-stitch full-page capture), data-extractor, multi-tab-analyzer, css-editor, accessibility-auditor, page-monitor (keeps a content snapshot per page for real AI diffs)
   - `privacy/` — content-filter (category-based blocking + stats, singleton in `filter-instance.ts`), tracker-detector, fingerprint (injected into webview guests on `did-start-navigation` when `privacy.fingerprintProtection` is set; script is idempotent per page)
   - `research/`, `recommendation/`, `context-menu/`
-- **Store** (`src/main/store/`): `config.ts` (electron-store `config.json`; keys: `ollama`, `browser`, `privacy`, `appearance`, `shortcuts`, plus runtime `providers`/`cloud`), `database.ts` (better-sqlite3 `data.db`, WAL; tables: bookmarks(+embedding), history, downloads, reading_list, interest_profiles, recommendation_cache, monitored_pages(+last_content_snapshot), page_changes, research_projects/sources/notes)
+- **Store** (`src/main/store/`): `config.ts` (electron-store `config.json`; keys: `ollama`, `browser`, `privacy`, `appearance`, `shortcuts`, plus runtime `providers`; the legacy `cloud` key is only read by first-run migration), `database.ts` (better-sqlite3 `data.db`, WAL; tables: bookmarks(+embedding), history, downloads, reading_list, interest_profiles, recommendation_cache, monitored_pages(+last_content_snapshot), page_changes, research_projects/sources/notes)
 
 ### Renderer Organization
 
@@ -114,3 +114,5 @@ The main process sets `OLLAMA_LLM_LIBRARY=cpu` by default as a workaround for Me
 - Don't import main-process singletons from `ipc/` inside `services/` — import from `services/ai/router-instance.ts` etc. to avoid cycles.
 - Theme/settings persistence lives under nested keys (`appearance.theme`, `appearance.showBookmarkBar`, ...). `settings-store` and `SettingsPage` both write the same nested keys; keep them in sync.
 - `npm run lint` uses the ESLint 9 flat config; unused vars must be prefixed with `_`.
+- `postinstall` runs `electron-builder install-app-deps` to rebuild better-sqlite3 for the Electron ABI — don't remove it, and re-run it if native modules fail to load.
+- Dead IPC endpoints are removed rather than stubbed: every channel in `shared/ipc-channels.ts` should have a real sender and receiver.
