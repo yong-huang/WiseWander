@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { TaskList } from './TaskList'
 import { ExecutionLog } from './ExecutionLog'
 import type { AgentTask } from '../../../shared/types'
+import type { AgentLiveNote } from '../../store/agent-store'
 
 interface AgentPanelProps {
   tasks: AgentTask[]
   activeTask: AgentTask | null
   isExecuting: boolean
+  liveNotes?: AgentLiveNote[]
   onExecute: (description: string) => void
   onCancel: () => void
   onSelectTask: (task: AgentTask) => void
@@ -16,6 +18,7 @@ export function AgentPanel({
   tasks,
   activeTask,
   isExecuting,
+  liveNotes = [],
   onExecute,
   onCancel,
   onSelectTask,
@@ -112,7 +115,7 @@ export function AgentPanel({
             )}
           </div>
 
-          {activeTask && <ExecutionLog task={activeTask} />}
+          {activeTask && <ExecutionLog task={activeTask} liveNotes={liveNotes} />}
 
           {tasks.length > 0 && (
             <div className="border-t border-gray-200 dark:border-gray-700">

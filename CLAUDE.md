@@ -110,6 +110,8 @@ The main process sets `OLLAMA_LLM_LIBRARY=cpu` by default as a workaround for Me
 
 ## Conventions & Gotchas
 
+- **Git workflow**: never commit automatically. Finish the work, run the checks, summarize the changes, and wait for the user's explicit confirmation before running `git commit`.
+
 - Add IPC channels in three places: `shared/ipc-channels.ts`, `main/ipc/*.ts`, `preload/index.ts`. The unit test `tests/unit/shared/ipc-channels.test.ts` enforces unique names.
 - Don't import main-process singletons from `ipc/` inside `services/` — import from `services/ai/router-instance.ts` etc. to avoid cycles.
 - Theme/settings persistence lives under nested keys (`appearance.theme`, `appearance.showBookmarkBar`, ...). `settings-store` and `SettingsPage` both write the same nested keys; keep them in sync.

@@ -13,3 +13,13 @@ export const RECOMMENDATION_MIN_HISTORY_DELTA = 20
 export const RECOMMENDATION_MAX_HISTORY_SAMPLE = 50
 export const NEW_TAB_URL = 'wisewander://newtab'
 export const BROWSER_ASSISTANT_ID = '__assistant__'
+
+// Agent loop budgets (hard limits — see docs/AGENT_EVOLUTION.md §6.6)
+export const AGENT_MAX_ITERATIONS = 15
+export const AGENT_MAX_WALL_MS = 180_000
+export const AGENT_MAX_PROMPT_CHARS = 160_000 // ≈40k tokens of cumulative prompt traffic
+export const AGENT_PAGE_MAX_ELEMENTS = 120
+export const AGENT_PAGE_TEXT_CHARS = 4_000
+export const AGENT_PAGE_BUDGET_CHARS = 12_000
+export const AGENT_OBSERVATION_CHARS = 1_500
+export const AGENT_REPROMPT_LIMIT = 2

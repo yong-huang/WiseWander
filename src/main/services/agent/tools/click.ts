@@ -6,6 +6,21 @@ export interface ClickResult {
   selector: string
 }
 
+/**
+ * Resolve the effective selector: an element `ref` from the agent's Page
+ * State (a `data-ww-ref` attribute stamped by the serializer) wins over a
+ * raw CSS selector (docs/AGENT_EVOLUTION.md D2).
+ */
+export function resolveSelector(params: Record<string, unknown>): string | null {
+  if (typeof params.ref === 'string' && params.ref.trim()) {
+    return `[data-ww-ref="${params.ref.trim().replace(/"/g, '')}"]`
+  }
+  if (typeof params.selector === 'string' && params.selector.trim()) {
+    return params.selector.trim()
+  }
+  return null
+}
+
 export interface ClickContext {
   webContents: {
     executeJavaScript: (code: string) => Promise<unknown>
@@ -14,10 +29,17 @@ export interface ClickContext {
 
 const parameters: ToolParameter[] = [
   {
+    name: 'ref',
+    type: 'string',
+    description:
+      'Element ref from the Page State interactive-elements list (preferred). Mutually exclusive with "selector".',
+    required: false,
+  },
+  {
     name: 'selector',
     type: 'string',
-    description: 'CSS selector of the element to click',
-    required: true,
+    description: 'CSS selector of the element to click (fallback when no ref fits)',
+    required: false,
   },
   {
     name: 'timeout',
@@ -31,16 +53,17 @@ const parameters: ToolParameter[] = [
 export const clickTool: AgentTool = {
   name: 'click',
   description:
-    'Clicks an element on the page identified by a CSS selector. Waits for the element to appear before clicking.',
+    'Clicks an element on the page, identified by its ref from the Page State (preferred) or a CSS selector. Waits for the element to appear before clicking.',
   parameters,
 
   async execute(
     params: Record<string, unknown>,
     context: unknown
   ): Promise<ClickResult> {
-    const { selector, timeout } = params
-    if (typeof selector !== 'string' || !selector) {
-      throw new Error('A valid "selector" string parameter is required.')
+    const { timeout } = params
+    const selector = resolveSelector(params)
+    if (!selector) {
+      throw new Error('Either a "ref" (from Page State) or a "selector" (CSS) string is required.')
     }
     const timeoutMs =
       typeof timeout === 'number' && timeout > 0 ? timeout : 5000

@@ -7,10 +7,18 @@ function getActiveTabId(): string | null {
   return useTabStore.getState().activeTabId
 }
 
+/** Live thought/observation lines streamed while a task runs. */
+export interface AgentLiveNote {
+  kind: 'thought' | 'observation'
+  iteration: number
+  text: string
+}
+
 interface TabAgentState {
   tasks: AgentTask[]
   activeTask: AgentTask | null
   isExecuting: boolean
+  liveNotes: AgentLiveNote[]
 }
 
 interface AgentActions {
@@ -31,6 +39,7 @@ const defaultTabState = (): TabAgentState => ({
   tasks: [],
   activeTask: null,
   isExecuting: false,
+  liveNotes: [],
 })
 
 let stepListenerCleanup: (() => void) | null = null
@@ -68,6 +77,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             tasks: [...s.tasks, task],
             activeTask: task,
             isExecuting: false,
+            liveNotes: [],
           })
           return { sessions }
         })
@@ -111,6 +121,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           t.id === taskId ? { ...t, status: 'failed' as const } : t
         ),
         isExecuting: false,
+        liveNotes: s.liveNotes,
       })
       return { sessions }
     })
@@ -152,6 +163,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         tasks: updatedTasks,
         activeTask: updatedActiveTask,
         isExecuting: isDone ? false : s.isExecuting,
+        liveNotes: s.liveNotes,
       })
       return { sessions }
     })
@@ -166,16 +178,41 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const cleanup = window.api.onAgentStep((data: unknown) => {
       const stepData = data as {
         tabId?: string
-        taskId: string
-        step: AgentStep
+        taskId?: string
+        type?: string
+        iteration?: number
+        text?: string
+        step?: AgentStep
         taskStatus?: AgentTask['status']
         result?: unknown
       }
 
-      const { tabId, taskId, step, taskStatus, result } = stepData
+      // Live thought/observation lines (agent loop v2)
+      if (stepData.type === 'thought' || stepData.type === 'observation') {
+        const kind = stepData.type as 'thought' | 'observation'
+        const tabId = stepData.tabId ?? getActiveTabId() ?? ''
+        set((state) => {
+          const sessions = new Map(state.sessions)
+          const s = sessions.get(tabId) ?? defaultTabState()
+          sessions.set(tabId, {
+            ...s,
+            liveNotes: [
+              ...s.liveNotes.slice(-40),
+              { kind, iteration: stepData.iteration ?? 0, text: stepData.text ?? '' },
+            ],
+          })
+          return { sessions }
+        })
+        return
+      }
+
+      const taskId = stepData.taskId ?? ''
+      const step = stepData.step as AgentStep
+      const taskStatus = stepData.taskStatus
+      const result = stepData.result
       // Route to the session that owns the task; fall back to the active tab
       // for payloads sent before tabId was part of the protocol.
-      const sessionTabId = tabId ?? getActiveTabId() ?? ''
+      const sessionTabId = stepData.tabId ?? getActiveTabId() ?? ''
 
       get().updateStep(sessionTabId, taskId, step)
 
@@ -203,6 +240,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             tasks: updatedTasks,
             activeTask: updatedActiveTask,
             isExecuting: isDone ? false : s.isExecuting,
+            liveNotes: s.liveNotes,
           })
           return { sessions }
         })

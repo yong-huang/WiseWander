@@ -57,4 +57,5 @@ npm run lint             # ESLint
 - [Product Requirements (PRD)](docs/PRD.md)
 - [Technical Design (DESIGN)](docs/DESIGN.md)
 - [Test Strategy (TEST)](docs/TEST.md)
+- [Agent Evolution Plan](docs/AGENT_EVOLUTION.md) — roadmap from scripted workflow to a closed-loop agent
 - [CLAUDE.md](CLAUDE.md) — codebase guide (architecture, conventions, gotchas)

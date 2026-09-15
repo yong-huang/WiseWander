@@ -156,6 +156,8 @@
 
 ### 3.4 P1 — AI Automation
 
+> Engineering evolution plan for this area (closed-loop agent): [AGENT_EVOLUTION.md](AGENT_EVOLUTION.md).
+
 #### 3.4.1 Form Filling
 
 | ID | Feature | Description |

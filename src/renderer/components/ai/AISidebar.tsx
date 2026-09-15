@@ -77,6 +77,7 @@ export function AISidebar({
   const agentStore = useAgentStore()
   const agentSession = agentStore.getTabState(tabId)
   const isExecuting = agentSession.isExecuting
+  const liveNotes = agentSession.liveNotes
   const executeTask = useCallback((desc: string) => agentStore.executeTask(tabId, desc), [tabId, agentStore])
   const cancelTask = useCallback(() => agentStore.cancelTask(tabId), [tabId, agentStore])
   const selectTask = useCallback((task: AgentTask) => agentStore.setActiveTask(tabId, task), [tabId, agentStore])
@@ -212,7 +213,7 @@ export function AISidebar({
           />
         )}
         {activeTab === 'agent' && (
-          <AgentPanel tasks={agentSession.tasks} activeTask={agentSession.activeTask} isExecuting={isExecuting} onExecute={executeTask} onCancel={cancelTask} onSelectTask={selectTask} />
+          <AgentPanel tasks={agentSession.tasks} activeTask={agentSession.activeTask} isExecuting={isExecuting} liveNotes={liveNotes} onExecute={executeTask} onCancel={cancelTask} onSelectTask={selectTask} />
         )}
         {activeTab === 'research' && (
           <ResearchPanel />

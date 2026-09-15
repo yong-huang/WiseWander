@@ -1,4 +1,5 @@
 import type { ToolParameter } from '../../../../shared/types'
+import { resolveSelector } from './click'
 import type { AgentTool } from '../tool-registry'
 
 export interface TypeResult {
@@ -15,10 +16,17 @@ export interface TypeContext {
 
 const parameters: ToolParameter[] = [
   {
+    name: 'ref',
+    type: 'string',
+    description:
+      'Element ref from the Page State interactive-elements list (preferred). Mutually exclusive with "selector".',
+    required: false,
+  },
+  {
     name: 'selector',
     type: 'string',
-    description: 'CSS selector of the input element to type into',
-    required: true,
+    description: 'CSS selector of the input element (fallback when no ref fits)',
+    required: false,
   },
   {
     name: 'text',
@@ -38,17 +46,17 @@ const parameters: ToolParameter[] = [
 export const typeTool: AgentTool = {
   name: 'type',
   description:
-    'Types text into an input element identified by a CSS selector. Optionally clears existing content first.',
+    'Types text into an input element, identified by its ref from the Page State (preferred) or a CSS selector. Optionally clears existing content first.',
   parameters,
 
   async execute(
     params: Record<string, unknown>,
     context: unknown
   ): Promise<TypeResult> {
-    const { selector, text, clear } = params
-
-    if (typeof selector !== 'string' || !selector) {
-      throw new Error('A valid "selector" string parameter is required.')
+    const { text, clear } = params
+    const selector = resolveSelector(params)
+    if (!selector) {
+      throw new Error('Either a "ref" (from Page State) or a "selector" (CSS) string is required.')
     }
     if (typeof text !== 'string') {
       throw new Error('A valid "text" string parameter is required.')

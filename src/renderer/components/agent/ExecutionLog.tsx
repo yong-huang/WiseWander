@@ -1,15 +1,33 @@
 import type { AgentTask } from '../../../shared/types'
+import type { AgentLiveNote } from '../../store/agent-store'
 
 interface ExecutionLogProps {
   task: AgentTask
+  liveNotes?: AgentLiveNote[]
 }
 
-export function ExecutionLog({ task }: ExecutionLogProps): React.ReactElement {
+export function ExecutionLog({ task, liveNotes = [] }: ExecutionLogProps): React.ReactElement {
   return (
     <div className="flex-1 overflow-y-auto p-3">
       <h4 className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
         Task: {task.description}
       </h4>
+
+      {/* Live agent-loop notes (thoughts & observations streamed per iteration) */}
+      {liveNotes.length > 0 && (
+        <div className="mb-2 space-y-1 rounded-lg border border-indigo-200/70 bg-indigo-50/60 p-2 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+          {liveNotes.map((note, i) => (
+            <div key={i} className="flex gap-1.5 text-[11px] leading-snug">
+              <span className={note.kind === 'thought' ? 'font-semibold text-indigo-600 dark:text-indigo-300' : 'font-semibold text-gray-400 dark:text-gray-500'}>
+                {note.kind === 'thought' ? '💭' : '👁'}
+              </span>
+              <span className={note.kind === 'thought' ? 'text-indigo-700 dark:text-indigo-200' : 'text-gray-500 dark:text-gray-400'}>
+                {note.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2">
         {task.steps.map((step) => (

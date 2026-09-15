@@ -459,123 +459,40 @@ class StreamHandler {
 
 ### 4.3 Agent Engine
 
-#### 4.3.1 Task Planner (Planner)
+> **Evolution plan:** the current design is a one-shot planner + fixed executor. The proposal to evolve it into a closed-loop, page-grounded agent (ReAct-style) lives in [AGENT_EVOLUTION.md](AGENT_EVOLUTION.md).
 
-```typescript
-// src/main/services/agent/planner.ts
+#### 4.3.1 Agent Controller (iterative loop, current design)
 
-interface AgentTask {
-  id: string;
-  description: string;          // natural-language description from the user
-  steps: AgentStep[];           // decomposed steps
-  status: 'planning' | 'executing' | 'completed' | 'failed';
-  result?: TaskResult;
-}
+Since 2026-09-15 the agent is a closed loop (`AgentController`, `src/main/services/agent/controller.ts`) instead of a one-shot planner:
 
-interface AgentStep {
-  id: number;
-  tool: string;                 // name of the tool to use
-  input: Record<string, any>;   // tool input parameters
-  output?: any;                 // execution result
-  status: 'pending' | 'running' | 'done' | 'error';
-}
-
-class Planner {
-  // Use the LLM to decompose a natural-language task into executable steps
-  async plan(taskDescription: string): Promise<AgentStep[]> {
-    const prompt = `Decompose the following task into browser operation steps, one tool per step.
-Available tools: navigate, click, type, extract, scroll, wait
-
-Task: ${taskDescription}
-
-Output the steps as a JSON array.`;
-
-    // Call Ollama to generate the plan
-    const response = await this.ollama.generate('planner', prompt);
-    return JSON.parse(response);
-  }
-}
+```
+loop (while iterations < budget):
+  1. Observe  — PageStateSerializer stamps data-ww-ref ids on interactive
+                elements and returns URL/title/scroll/text/element list
+  2. Reason   — ModelRouter.chatSync with goal + history digest + last
+                observation + compact page view; model must answer with
+                ONE JSON object: {"thought", "action", "params"} or
+                {"action": "done", "report"}
+  3. Validate — JSON repair (json-utils.ts) + tool existence check;
+                invalid output is re-prompted (≤ 2 times)
+  4. Act      — ToolRegistry.execute against the guest webContents
+  5. Emit     — agent:step { thought | action | observation, tabId }
 ```
 
-#### 4.3.2 Execution Engine (implemented in `agent.ipc.ts`)
+Hard budgets (non-negotiable): 15 iterations / 3 minutes / ~160k chars of
+cumulative prompt traffic; the AbortController cancels between and during
+steps. Page content is framed as untrusted data and never instructions.
 
-The execution loop is implemented directly in the IPC handler (the earlier standalone `Executor` class was removed — it had no access to toolContext, placeholder substitution, or progress pushes):
+The retired one-shot `planner.ts` was removed; its JSON-repair helpers live
+on in `json-utils.ts`. Full proposal and phase history:
+[AGENT_EVOLUTION.md](AGENT_EVOLUTION.md).
 
-- Steps run sequentially; the `<previous_result>` placeholder is recursively replaced with the previous step's output
-- Before and after each step, `{ tabId, taskId, type:'step_update', step }` is pushed via `agent:step` — **events carry tabId**, so switching tabs never attributes progress to the wrong session
-- `agent:cancel(taskId)` triggers an `AbortController`; the loop checks the signal between steps, remaining steps are marked error, and the task ends as failed (true cancellation)
-- A single step failure does not abort the task (tolerant degradation); the final `result.success` reflects whether everything succeeded
+#### 4.3.2 Tools
 
-#### 4.3.3 Tool System
-
-```typescript
-// src/main/services/agent/tool-registry.ts
-
-interface AgentTool {
-  name: string;
-  description: string;
-  parameters: ToolParameter[];
-  execute: (params: Record<string, any>, context: ExecutionContext) => Promise<any>;
-}
-
-interface ToolParameter {
-  name: string;
-  type: 'string' | 'number' | 'boolean';
-  description: string;
-  required: boolean;
-}
-
-class ToolRegistry {
-  private tools: Map<string, AgentTool> = new Map();
-
-  register(tool: AgentTool): void;
-  get(name: string): AgentTool;
-  list(): AgentTool[];
-}
-```
-
-Built-in tools:
-
-| Tool | Description | Parameters |
-|------|------|------|
-| `navigate` | Navigate to a URL | `url: string` |
-| `click` | Click a page element | `selector: string` |
-| `type` | Type text | `selector: string, text: string` |
-| `extract` | Extract page data | `selector: string, schema: object` |
-| `scroll` | Scroll the page | `direction: 'up' \| 'down', amount: number` |
-| `wait` | Wait for an element to appear | `selector: string, timeout: number` |
-
----
-
-### 4.4 Privacy Module
-
-#### 4.4.1 Content Filtering
-
-```typescript
-// src/main/services/privacy/content-filter.ts
-
-interface FilterRule {
-  id: string;
-  type: 'ad' | 'tracker' | 'script' | 'image';
-  pattern: string | RegExp;
-  action: 'block' | 'allow';
-}
-
-class ContentFilter {
-  private rules: FilterRule[];
-
-  // Intercept requests using Electron's webRequest API
-  installSessionFilter(session: Electron.Session): void;
-  // Load filter rules (built-in + user-defined)
-  loadRules(rules: FilterRule[]): void;
-  // Collect blocking statistics
-  getStats(tabId: number): FilterStats;
-}
-```
-
-#### 4.4.2 Tracker Detection
-
-Blocks requests at the request stage based on a list of known tracker domains (derived from EasyList/EasyPrivacy).
+Tool signatures live in `src/main/services/agent/tools/*`. `click` and
+`type` accept an element `ref` (resolved against the `data-ww-ref`
+attributes stamped by the serializer, preferred) or a raw CSS selector
+(fallback).
 
 ---
 
