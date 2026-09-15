@@ -1,17 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TaskList } from './TaskList'
 import { ExecutionLog } from './ExecutionLog'
-import type { AgentTask } from '../../../shared/types'
-import type { AgentLiveNote } from '../../store/agent-store'
+import type { AgentTask, AgentRunSummary, AgentRunDetail } from '../../../shared/types'
+import type { AgentLiveNote, AgentBudget } from '../../store/agent-store'
+
+interface PendingConfirmation {
+  taskId: string
+  message: string
+}
 
 interface AgentPanelProps {
   tasks: AgentTask[]
   activeTask: AgentTask | null
   isExecuting: boolean
   liveNotes?: AgentLiveNote[]
+  budget?: AgentBudget | null
+  pendingConfirmation?: PendingConfirmation | null
   onExecute: (description: string) => void
   onCancel: () => void
+  onAnswerConfirmation: (approved: boolean) => void
   onSelectTask: (task: AgentTask) => void
+}
+
+function formatRemainingMs(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
 }
 
 export function AgentPanel({
@@ -19,12 +34,84 @@ export function AgentPanel({
   activeTask,
   isExecuting,
   liveNotes = [],
+  budget = null,
+  pendingConfirmation = null,
   onExecute,
   onCancel,
+  onAnswerConfirmation,
   onSelectTask,
 }: AgentPanelProps): React.ReactElement {
   const [input, setInput] = useState('')
   const [view, setView] = useState<'input' | 'tasks'>('input')
+  const [history, setHistory] = useState<AgentRunSummary[]>([])
+  const [expandedRun, setExpandedRun] = useState<AgentRunDetail | null>(null)
+
+  // Recent runs from previous sessions (Phase 3 memory)
+  useEffect(() => {
+    if (isExecuting) return
+    window.api
+      .agentHistoryList(10)
+      .then((runs: unknown) => setHistory((runs as AgentRunSummary[]) ?? []))
+      .catch(() => {})
+  }, [isExecuting])
+
+  const historySection = (() => {
+    if (isExecuting || history.length === 0) return null
+    return (
+      <div className="px-3 pb-2">
+        <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+          Recent runs
+        </h4>
+        <div className="space-y-1">
+          {history.map((run) => (
+            <div key={run.id} className="rounded-lg border border-gray-200/80 text-xs dark:border-gray-700/70">
+              <button
+                onClick={() => toggleRunDetail(run.id)}
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    run.status === 'completed'
+                      ? 'bg-emerald-500'
+                      : run.status === 'failed'
+                      ? 'bg-red-400'
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                />
+                <span className="min-w-0 flex-1 truncate text-gray-700 dark:text-gray-300">{run.goal}</span>
+                <span className="shrink-0 text-[10px] text-gray-400">
+                  {run.iterations} step{run.iterations === 1 ? '' : 's'}
+                </span>
+              </button>
+              {expandedRun?.id === run.id && (
+                <div className="border-t border-gray-200/80 px-2.5 py-2 text-[11px] dark:border-gray-700/70">
+                  {expandedRun.report && (
+                    <p className="text-gray-600 dark:text-gray-400">{expandedRun.report}</p>
+                  )}
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    {expandedRun.steps.length} step(s) · {new Date(run.startedAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  })()
+
+  const toggleRunDetail = async (id: string): Promise<void> => {
+    if (expandedRun?.id === id) {
+      setExpandedRun(null)
+      return
+    }
+    try {
+      const detail = (await window.api.agentHistoryGet(id)) as AgentRunDetail | null
+      setExpandedRun(detail)
+    } catch {
+      // ignore
+    }
+  }
 
   const handleExecute = (): void => {
     const trimmed = input.trim()
@@ -35,7 +122,7 @@ export function AgentPanel({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-y-auto scrollbar-thin">
       {view === 'input' ? (
         <div className="flex flex-1 flex-col p-3">
           <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -115,7 +202,99 @@ export function AgentPanel({
             )}
           </div>
 
-          {activeTask && <ExecutionLog task={activeTask} liveNotes={liveNotes} />}
+          {/* Confirmation gate (AT-003): risky action awaiting user decision */}
+      {isExecuting && pendingConfirmation && (
+        <div className="mx-3 mb-2 rounded-xl border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-500/40 dark:bg-amber-500/10 animate-slide-up">
+          <div className="flex items-start gap-2">
+            <span aria-hidden>⚠️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                Confirmation required
+              </p>
+              <p className="mt-0.5 break-words text-[11px] text-amber-700/90 dark:text-amber-200/90">
+                {pendingConfirmation.message}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => onAnswerConfirmation(true)}
+                  className="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 active:scale-95 transition-all"
+                >
+                  Allow
+                </button>
+                <button
+                  onClick={() => onAnswerConfirmation(false)}
+                  className="rounded-lg bg-gray-200 px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 active:scale-95 transition-all"
+                >
+                  Deny
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Budget strip */}
+      {isExecuting && budget && (
+        <div className="mx-3 mb-2 flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-500">
+          <span>
+            Step {Math.max(1, budget.maxIterations - budget.remainingSteps)}/{budget.maxIterations}
+          </span>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-all"
+              style={{ width: `${Math.max(4, (budget.remainingSteps / budget.maxIterations) * 100)}%` }}
+            />
+          </div>
+          <span>{formatRemainingMs(budget.remainingMs)} left</span>
+        </div>
+      )}
+
+      {activeTask && <ExecutionLog task={activeTask} liveNotes={liveNotes} />}
+
+      {activeTask && <ExecutionLog task={activeTask} liveNotes={liveNotes} />}
+
+      {/* Recent runs from previous sessions (Phase 3 memory) */}
+      {!isExecuting && history.length > 0 && (
+        <div className="mt-3 px-3">
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Recent runs
+          </h4>
+          <div className="space-y-1">
+            {history.map((run) => (
+              <div key={run.id} className="rounded-lg border border-gray-200/80 text-xs dark:border-gray-700/70">
+                <button
+                  onClick={() => toggleRunDetail(run.id)}
+                  className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      run.status === 'completed'
+                        ? 'bg-emerald-500'
+                        : run.status === 'failed'
+                        ? 'bg-red-400'
+                        : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-gray-700 dark:text-gray-300">{run.goal}</span>
+                  <span className="shrink-0 text-[10px] text-gray-400">
+                    {run.iterations} step{run.iterations === 1 ? '' : 's'}
+                  </span>
+                </button>
+                {expandedRun?.id === run.id && (
+                  <div className="border-t border-gray-200/80 px-2.5 py-2 text-[11px] dark:border-gray-700/70">
+                    {expandedRun.report && (
+                      <p className="text-gray-600 dark:text-gray-400">{expandedRun.report}</p>
+                    )}
+                    <p className="mt-1 text-[10px] text-gray-400">
+                      {expandedRun.steps.length} step(s) · {new Date(run.startedAt).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
           {tasks.length > 0 && (
             <div className="border-t border-gray-200 dark:border-gray-700">
@@ -127,6 +306,8 @@ export function AgentPanel({
           )}
         </div>
       )}
+
+      {historySection}
     </div>
   )
 }

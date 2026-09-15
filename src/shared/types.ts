@@ -117,6 +117,28 @@ export interface TaskResult {
   error?: string
 }
 
+export interface AgentRunSummary {
+  id: string
+  goal: string
+  status: string
+  report?: string
+  iterations: number
+  startedAt: number
+  finishedAt?: number
+}
+
+export interface AgentRunDetail extends AgentRunSummary {
+  tabUrl?: string
+  promptChars: number
+  steps: Array<{
+    iteration: number
+    tool: string
+    input: unknown
+    status: string
+    output?: unknown
+  }>
+}
+
 export interface ToolParameter {
   name: string
   type: 'string' | 'number' | 'boolean'

@@ -14,11 +14,20 @@ export interface AgentLiveNote {
   text: string
 }
 
+export interface AgentBudget {
+  remainingSteps: number
+  remainingMs: number
+  maxIterations: number
+}
+
 interface TabAgentState {
   tasks: AgentTask[]
   activeTask: AgentTask | null
   isExecuting: boolean
   liveNotes: AgentLiveNote[]
+  budget: AgentBudget | null
+  /** Non-null while the agent waits for the user to approve a risky action. */
+  pendingConfirmation: { taskId: string; message: string } | null
 }
 
 interface AgentActions {
@@ -26,6 +35,7 @@ interface AgentActions {
   getTabState: (tabId: string) => TabAgentState
   executeTask: (tabId: string, description: string) => Promise<void>
   cancelTask: (tabId: string) => Promise<void>
+  answerConfirmation: (tabId: string, approved: boolean) => Promise<void>
   setActiveTask: (tabId: string, task: AgentTask | null) => void
   updateStep: (tabId: string, taskId: string, step: AgentStep) => void
   setupStepListener: () => () => void
@@ -40,6 +50,8 @@ const defaultTabState = (): TabAgentState => ({
   activeTask: null,
   isExecuting: false,
   liveNotes: [],
+  budget: null,
+  pendingConfirmation: null,
 })
 
 let stepListenerCleanup: (() => void) | null = null
@@ -78,6 +90,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             activeTask: task,
             isExecuting: false,
             liveNotes: [],
+            budget: null,
+            pendingConfirmation: null,
           })
           return { sessions }
         })
@@ -122,7 +136,26 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         ),
         isExecuting: false,
         liveNotes: s.liveNotes,
+        budget: null,
+        pendingConfirmation: null,
       })
+      return { sessions }
+    })
+  },
+
+  answerConfirmation: async (tabId: string, approved: boolean) => {
+    const session = get().sessions.get(tabId)
+    const pending = session?.pendingConfirmation
+    if (!pending) return
+    try {
+      await window.api.agentConfirm(pending.taskId, approved)
+    } catch (error) {
+      console.error('Failed to answer agent confirmation:', error)
+    }
+    set((state) => {
+      const sessions = new Map(state.sessions)
+      const s = sessions.get(tabId) ?? defaultTabState()
+      sessions.set(tabId, { ...s, pendingConfirmation: null })
       return { sessions }
     })
   },
@@ -164,6 +197,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         activeTask: updatedActiveTask,
         isExecuting: isDone ? false : s.isExecuting,
         liveNotes: s.liveNotes,
+        budget: s.budget,
+        pendingConfirmation: s.pendingConfirmation,
       })
       return { sessions }
     })
@@ -185,6 +220,40 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         step?: AgentStep
         taskStatus?: AgentTask['status']
         result?: unknown
+      }
+
+      // Confirmation gate: surface the pending decision to the user
+      if (stepData.type === 'confirm') {
+        const tabId = stepData.tabId ?? getActiveTabId() ?? ''
+        set((state) => {
+          const sessions = new Map(state.sessions)
+          const s = sessions.get(tabId) ?? defaultTabState()
+          sessions.set(tabId, {
+            ...s,
+            pendingConfirmation: { taskId: stepData.taskId ?? '', message: stepData.text ?? '' },
+          })
+          return { sessions }
+        })
+        return
+      }
+
+      // Budget telemetry
+      if (stepData.type === 'budget') {
+        const tabId = stepData.tabId ?? getActiveTabId() ?? ''
+        set((state) => {
+          const sessions = new Map(state.sessions)
+          const s = sessions.get(tabId) ?? defaultTabState()
+          sessions.set(tabId, {
+            ...s,
+            budget: {
+              remainingSteps: (stepData as { remainingSteps?: number }).remainingSteps ?? 0,
+              remainingMs: (stepData as { remainingMs?: number }).remainingMs ?? 0,
+              maxIterations: (stepData as { maxIterations?: number }).maxIterations ?? 15,
+            },
+          })
+          return { sessions }
+        })
+        return
       }
 
       // Live thought/observation lines (agent loop v2)
@@ -241,6 +310,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             activeTask: updatedActiveTask,
             isExecuting: isDone ? false : s.isExecuting,
             liveNotes: s.liveNotes,
+            budget: s.budget,
+            pendingConfirmation: s.pendingConfirmation,
           })
           return { sessions }
         })

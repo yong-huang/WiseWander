@@ -993,7 +993,7 @@ export function createTestDB(): Database.Database {
 
 | Suite | Command | Status |
 |------|------|------|
-| Unit | `npm run test:unit` | ✅ 85 passing / 10 files (covering prompt-builder, tab-manager, tool-registry, ipc-channels, ai-smart-tab-name, capability-crawl store, web-crawler with 16 cases, plus the agent loop suite (json-utils, page-state, controller with a scripted fake LLM — 19 cases)) |
+| Unit | `npm run test:unit` | ✅ 100 passing / 11 files (covering prompt-builder, tab-manager, tool-registry, ipc-channels, ai-smart-tab-name, capability-crawl store, web-crawler with 16 cases, plus the agent loop suite (json-utils, page-state, controller with a scripted fake LLM — 27 cases, incl. Phase 2 guards: identical-failure block, goal self-check, confirmation gates, off-domain policy) and run-store persistence (node:sqlite-backed tests, 5 cases))) |
 | Integration | `npm run test:integration` | ✅ 45 passing / 3 files (capability-crawl, capability-md-export, html-to-markdown) |
 | E2E | `npm run test:e2e` | 19 specs; requires `npm run build` first and a locally running Ollama (AI suites make real calls) |
 | Types | `npm run typecheck` | ✅ Real checks against both tsconfigs (the old script was a no-op; fixed) |

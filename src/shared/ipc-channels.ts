@@ -25,6 +25,9 @@ export const IPC_CHANNELS = {
   AGENT_EXECUTE: 'agent:execute',
   AGENT_STEP_UPDATE: 'agent:step',
   AGENT_CANCEL: 'agent:cancel',
+  AGENT_CONFIRM: 'agent:confirm',
+  AGENT_HISTORY_LIST: 'agent:history:list',
+  AGENT_HISTORY_GET: 'agent:history:get',
 
   // Bookmarks
   BOOKMARK_ADD: 'bookmark:add',

@@ -112,6 +112,40 @@ function migrate(db: Database.Database): void {
       FOREIGN KEY (monitored_page_id) REFERENCES monitored_pages(id) ON DELETE CASCADE
     );
 
+    -- Feature 6: Agent memory (docs/AGENT_EVOLUTION.md Phase 3)
+    CREATE TABLE IF NOT EXISTS agent_runs (
+      id TEXT PRIMARY KEY,
+      tab_url TEXT,
+      goal TEXT NOT NULL,
+      status TEXT NOT NULL,
+      report TEXT,
+      iterations INTEGER NOT NULL,
+      prompt_chars INTEGER NOT NULL,
+      started_at INTEGER NOT NULL,
+      finished_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_steps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id TEXT NOT NULL,
+      iteration INTEGER NOT NULL,
+      tool TEXT NOT NULL,
+      input TEXT NOT NULL,
+      status TEXT NOT NULL,
+      output TEXT,
+      FOREIGN KEY (run_id) REFERENCES agent_runs(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_steps_run ON agent_steps(run_id);
+
+    CREATE TABLE IF NOT EXISTS agent_site_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      domain TEXT NOT NULL,
+      note TEXT NOT NULL,
+      hits INTEGER DEFAULT 1,
+      last_seen_at INTEGER NOT NULL,
+      UNIQUE(domain, note)
+    );
+
     -- Feature 4: Research Workbench
     CREATE TABLE IF NOT EXISTS research_projects (
       id TEXT PRIMARY KEY,

@@ -23,6 +23,8 @@ export interface PageStateElement {
   text: string
   inputType?: string
   value?: string
+  /** Hostname of link targets — used by the navigation confirmation gate. */
+  host?: string
 }
 
 export interface PageState {
@@ -114,6 +116,7 @@ function __wwCollectPageState(maxElements, maxTextChars) {
     const item = { ref, tag: el.tagName.toLowerCase(), role: roleOf(el), text: elementText(el) };
     if (el.tagName === 'INPUT' && el.type && el.type !== 'text') item.inputType = el.type;
     if (el.value !== undefined && String(el.value).length > 0 && String(el.value).length <= 60) item.value = String(el.value).slice(0, 60);
+    if (el.tagName === 'A' && el.href) { try { item.host = new URL(el.href).hostname.replace(/^www\\./, '') } catch (_) {} }
     kept.push(item);
   }
 

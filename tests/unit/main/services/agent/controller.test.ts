@@ -63,14 +63,29 @@ function scriptedRegistry(script: Array<Record<string, unknown>>): {
   return { registry, calls }
 }
 
-/** A scripted fake LLM: returns pre-recorded replies, one per call. */
-function fakeRouter(replies: string[]): { chatSync: (m: unknown[]) => Promise<string>; calls: number } {
+/** A scripted fake LLM: returns pre-recorded replies, one per call.
+ *  Verify calls (system contains 'QA verifier') use verifierReplies. */
+function fakeRouter(replies: string[], verifierReplies: string[] = []): {
+  chatSync: (m: unknown[]) => Promise<string>
+  calls: number
+  verifyCalls: number
+} {
   let calls = 0
+  let verifyCalls = 0
   return {
     get calls() {
       return calls
     },
-    chatSync: async () => {
+    get verifyCalls() {
+      return verifyCalls
+    },
+    chatSync: async (messages: unknown[]) => {
+      const system = (messages[0] as { content: string }).content
+      if (system.includes('QA verifier')) {
+        const reply = verifierReplies[Math.min(verifyCalls, verifierReplies.length - 1)]
+        verifyCalls += 1
+        return reply
+      }
       const reply = replies[Math.min(calls, replies.length - 1)]
       calls += 1
       return reply
@@ -91,11 +106,13 @@ async function runController(opts: {
   const { context } = makeContext()
   const events: ControllerEvent[] = []
   const { registry, calls } = scriptedRegistry(opts.script ?? {})
+  const page = fakePageState()
+  if (opts.pageUrl) page.url = opts.pageUrl
   const controller = new AgentController({
     goal: 'test goal',
     registry,
-    router: fakeRouter(opts.replies),
-    executeJs: async () => fakePageState(),
+    router: fakeRouter(opts.replies, opts.verifierReplies ?? []),
+    executeJs: async () => page,
     toolContext: context,
     emit: (e) => events.push(e),
     signal: (() => {
@@ -104,6 +121,7 @@ async function runController(opts: {
       return ac.signal
     })(),
     budgets: opts.budgets,
+    confirm: opts.confirm,
   })
   const result = await controller.run()
   return { result, events, calls }
@@ -187,5 +205,186 @@ describe('AgentController', () => {
     })
     expect(result.status).toBe('aborted')
     expect(result.report).toContain('Cancelled')
+  })
+
+  // ── Phase 3: site experience hints ──
+
+  async function runControllerWithCapture(opts: {
+    replies: string[]
+    onMessages: (messages: unknown[]) => void
+    siteHints?: string[]
+  }): Promise<{ status: string; report: string }> {
+    const { context } = makeContext()
+    const router = {
+      chatSync: async (messages: unknown[]) => {
+        opts.onMessages(messages)
+        return opts.replies[Math.min(0, opts.replies.length - 1)]
+      },
+    }
+    const controller = new AgentController({
+      goal: 'test goal',
+      registry: scriptedRegistry({}).registry,
+      router,
+      executeJs: async () => fakePageState(),
+      toolContext: context,
+      emit: () => {},
+      signal: new AbortController().signal,
+      siteHints: opts.siteHints,
+    })
+    const result = await controller.run()
+    return { status: result.status, report: result.report }
+  }
+
+  // ── Phase 2: identical-failure guard ──
+
+  it('blocks the exact same failing action after two failures', async () => {
+    const { result, calls } = await runController({
+      replies: [
+        '{"thought":"click","action":"click","params":{"ref":"e1"}}',
+        '{"thought":"try again","action":"click","params":{"ref":"e1"}}',
+        '{"thought":"try same again","action":"click","params":{"ref":"e1"}}',
+        '{"thought":"done instead","action":"done","report":"gave up after failures"}',
+      ],
+      script: { clickThrows: true },
+    })
+    expect(result.status).toBe('completed')
+    // two real executions, third identical attempt was blocked before dispatch
+    expect(calls.filter((c) => c.tool === 'click')).toHaveLength(2)
+    expect(result.steps).toHaveLength(2)
+  })
+
+  it('resets the failure guard after a different action succeeds', async () => {
+    const { result, calls } = await runController({
+      replies: [
+        '{"thought":"click","action":"click","params":{"ref":"e1"}}',
+        '{"thought":"navigate away","action":"navigate","params":{"url":"https://example.com/x"}}',
+        '{"thought":"click again","action":"click","params":{"ref":"e1"}}',
+        '{"thought":"done","action":"done","report":"ok"}',
+      ],
+      script: { clickThrows: true },
+    })
+    expect(result.status).toBe('completed')
+    // both clicks were dispatched: the navigate in between reset the guard
+    expect(calls.filter((c) => c.tool === 'click')).toHaveLength(2)
+  })
+
+  // ── Phase 2: goal self-check ──
+
+  it('rejects a done report when the self-check judges the goal unmet', async () => {
+    const { result } = await runController({
+      replies: [
+        '{"thought":"claiming done","action":"done","report":"I did the thing"}',
+        '{"thought":"self-check pushed back, navigating","action":"navigate","params":{"url":"https://example.com/goal"}}',
+        '{"thought":"now actually done","action":"done","report":"Goal achieved for real."}',
+      ],
+      verifierReplies: ['{"achieved": false, "reason": "the goal page was never opened"}', '{"achieved": true, "reason": "goal page reached"}'],
+    })
+    expect(result.status).toBe('completed')
+    expect(result.report).toBe('Goal achieved for real.')
+    expect(result.steps.some((s) => s.tool === 'navigate')).toBe(true)
+  })
+
+  it('caps self-check continuations and then accepts the report', async () => {
+    const { result } = await runController({
+      replies: ['{"thought":"done","action":"done","report":"I think so"}'],
+      verifierReplies: ['{"achieved": false, "reason": "nope"}'],
+      budgets: { maxIterations: 5 },
+    })
+    expect(result.status).toBe('completed')
+    expect(result.report).toBe('I think so')
+  })
+
+  // ── Phase 2: confirmation gates ──
+
+  it('gates off-domain navigation and executes it when approved', async () => {
+    const approvals: string[] = []
+    const { result, calls } = await runController({
+      replies: [
+        '{"thought":"go external","action":"navigate","params":{"url":"https://other-site.com/page"}}',
+        '{"thought":"done","action":"done","report":"navigated off-domain"}',
+      ],
+      pageUrl: 'https://example.com/start',
+      confirm: async (message) => {
+        approvals.push(message)
+        return true
+      },
+    })
+    expect(approvals).toHaveLength(1)
+    expect(approvals[0]).toContain('other-site.com')
+    expect(calls.some((c) => c.tool === 'navigate')).toBe(true)
+    expect(result.status).toBe('completed')
+  })
+
+  it('treats denial as an observation and continues', async () => {
+    const { result, calls } = await runController({
+      replies: [
+        '{"thought":"go external","action":"navigate","params":{"url":"https://other-site.com/page"}}',
+        '{"thought":"finish instead","action":"done","report":"stopped after denial"}',
+      ],
+      pageUrl: 'https://example.com/start',
+      confirm: async () => false,
+    })
+    expect(calls.some((c) => c.tool === 'navigate')).toBe(false)
+    expect(result.status).toBe('completed')
+    expect(result.report).toContain('denial')
+  })
+
+  it('gates risky-looking clicks (same-domain navigation is free)', async () => {
+    const approvals: string[] = []
+    const { result } = await runController({
+      replies: [
+        '{"thought":"click checkout","action":"click","params":{"ref":"e2"}}',
+        '{"thought":"finish","action":"done","report":"clicked"}',
+      ],
+      confirm: async (message) => {
+        approvals.push(message)
+        return true
+      },
+    })
+    // e2 is "Go" (not risky, same domain) → no gate fired
+    expect(approvals).toHaveLength(0)
+    expect(result.status).toBe('completed')
+  })
+
+  // ── Phase 2: budget events ──
+
+  it('emits budget events with remaining steps', async () => {
+    const { events } = await runController({
+      replies: [
+        '{"thought":"navigate","action":"navigate","params":{"url":"https://example.com/a"}}',
+        '{"thought":"done","action":"done","report":"ok"}',
+      ],
+      budgets: { maxIterations: 5 },
+    })
+    const budgets = events.filter((e) => e.type === 'budget') as Array<{ type: 'budget'; remainingSteps: number }>
+    expect(budgets.length).toBe(1)
+    expect(budgets[0].remainingSteps).toBe(4)
+  })
+
+  // ── Phase 3: site experience hints ──
+
+  it('injects site hints into the first prompt', async () => {
+    let capturedUserPrompt = ''
+    const { status, report } = await runControllerWithCapture({
+      replies: ['{"thought":"done","action":"done","report":"ok"}'],
+      onMessages: (messages) => {
+        if (capturedUserPrompt === '') capturedUserPrompt = (messages[1] as { content: string }).content
+      },
+      siteHints: ['search results live under [e2]'],
+    })
+    expect(status).toBe('completed')
+    expect(report).toBe('ok')
+    expect(capturedUserPrompt).toContain('search results live under [e2]')
+  })
+
+  it('omits the hints section when there are none', async () => {
+    let capturedUserPrompt = ''
+    await runControllerWithCapture({
+      replies: ['{"action":"done"}'],
+      onMessages: (messages) => {
+        if (capturedUserPrompt === '') capturedUserPrompt = (messages[1] as { content: string }).content
+      },
+    })
+    expect(capturedUserPrompt).not.toContain('Hints from previous runs')
   })
 })

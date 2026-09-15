@@ -2,7 +2,24 @@
 
 > Version: 1.0.0 (draft for review)
 > Updated: 2026-09-15
-> Status: Phase 1 implemented (2026-09-15); Phases 2–3 not started
+> Status: Phases 1–3 core implemented (2026-09-15); 3.4 (vision) deferred
+>
+> Phase 2 deviations from this plan: confirmation timeout (120s silence) is
+> treated as denial, never consent; two consecutive denials stop the run;
+> risky-click detection uses a functional keyword list (EN + CN commerce
+> verbs) plus off-domain link hosts; self-check continues the loop at most
+> twice before accepting the report.
+>
+> Phase 3 deviations: 3.2 (thought streaming) was already delivered in
+> Phase 1; 3.4 (vision) is deferred — it requires multimodal message support
+> in the Ollama/Cloud clients (base64 image parts) and is tracked as future
+> work; a qwen3-vl model is available locally when picked up.
+>
+> Phase 2 deviations from this plan: confirmation timeout (120s silence) is
+> treated as denial, never consent; two consecutive denials stop the run;
+> risky-click detection uses a functional keyword list (EN + CN commerce
+> verbs) plus off-domain link hosts; self-check continues the loop at most
+> twice before accepting the report.
 >
 > Phase 1 deviations from this plan: (a) structured output uses the JSON-repair
 > path only — native Ollama tool calling is deferred to Phase 2; (b) the
@@ -163,24 +180,24 @@ The controller selects per model capability and records which path was used in t
 - S3: Early termination — "open example.com" on an already-open example.com tab ends in 1 step with a done report
 - S4: Budget exhaustion produces an honest partial report, not a hang
 
-### Phase 2 — Robustness & safety
+### Phase 2 — Robustness & safety — ✅ implemented 2026-09-15
 
 | Task | Acceptance |
 |---|---|
-| 2.1 Error-as-observation + bounded retries (≤2 per tool) | S2 becomes a unit-testable behavior, not luck |
+| 2.1 Error-as-observation + bounded retries (≤2 per tool) | S2 becomes a unit-testable behavior, not luck — implemented as an identical-failure guard: the exact same action is blocked after 2 failures, and a different action resets the guard |
 | 2.2 Goal self-check pass before reporting done | Model-verified completion; mismatch triggers extra bounded iteration |
 | 2.3 Confirmation gates (+ PRD AT-003) | Risky action pauses; Approve/Cancel dialog; denial aborts cleanly |
 | 2.4 Domain allowlist + policy plumbing | Off-domain navigation requires confirmation |
-| 2.5 Budgets surfaced in UI | Remaining steps/time visible in AgentPanel |
+| 2.5 Budgets surfaced in UI | Remaining steps/time visible in AgentPanel (budget strip; controller emits a budget event per iteration) |
 
-### Phase 3 — Memory & experience
+### Phase 3 — Memory & experience — ✅ core implemented 2026-09-15 (3.4 vision deferred)
 
 | Task | Acceptance |
 |---|---|
 | 3.1 `agent_runs` / `agent_steps` SQLite tables + `AgentRunStore` | Runs survive restart; viewable history in AgentPanel |
-| 3.2 Thought streaming polish | Live reasoning visible during execution |
-| 3.3 Site-experience notes (what selectors/flows worked) | Stored per domain; injected as hints on later runs |
-| 3.4 (Optional) Vision: viewport screenshot as observation | Behind a capability check (vision model present) |
+| 3.2 Thought streaming polish | ✅ delivered in Phase 1 (live thought/observation notes in ExecutionLog) |
+| 3.3 Site-experience notes (what selectors/flows worked) | ✅ Stored per domain (`agent_site_notes`, top-5 kept, hit-reinforced); successful run traces saved and injected as advisory hints in the first prompt |
+| 3.4 (Optional) Vision: viewport screenshot as observation | Deferred — requires multimodal message support in the model clients; a qwen3-vl model is available locally for when it is picked up |
 
 ## 8. Testing Plan
 

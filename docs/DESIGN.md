@@ -482,6 +482,15 @@ loop (while iterations < budget):
 Hard budgets (non-negotiable): 15 iterations / 3 minutes / ~160k chars of
 cumulative prompt traffic; the AbortController cancels between and during
 steps. Page content is framed as untrusted data and never instructions.
+Phase 2 safety: identical failing actions are blocked after two attempts;
+"done" reports pass a model-run goal self-check (bounded continuations);
+off-domain navigation, off-domain links, and risky-click targets (commerce
+keywords) pause the loop for user approval via the `agent:confirm` gate
+(120s silence = denial; two denials stop the run).
+Phase 3 memory: runs and steps persist to `agent_runs`/`agent_steps`
+(`AgentRunStore`, `run-store.ts`); successful run traces become per-domain
+experience notes in `agent_site_notes`, re-injected as advisory hints on
+later runs over the same site. History is browsable in the AgentPanel.
 
 The retired one-shot `planner.ts` was removed; its JSON-repair helpers live
 on in `json-utils.ts`. Full proposal and phase history:

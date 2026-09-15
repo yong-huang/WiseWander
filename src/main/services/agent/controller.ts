@@ -6,9 +6,11 @@ import {
   AGENT_PAGE_BUDGET_CHARS,
   AGENT_OBSERVATION_CHARS,
   AGENT_REPROMPT_LIMIT,
+  AGENT_MAX_IDENTICAL_FAILURES,
+  AGENT_MAX_SELF_CHECK_CONTINUATIONS,
 } from '../../../shared/constants'
 import type { ToolRegistry } from './tool-registry'
-import { serializePageState, formatPageState } from './page-state'
+import { serializePageState, formatPageState, type PageState } from './page-state'
 import { extractJson, truncate } from './json-utils'
 
 /**
@@ -17,7 +19,11 @@ import { extractJson, truncate } from './json-utils'
  *
  * Runs in the main process (D1) and drives the guest page through the
  * same tool context the one-shot planner used. Every iteration emits
- * thought / action / observation events for the renderer.
+ * thought / action / observation / budget events for the renderer.
+ *
+ * Phase 2 additions: identical-failure guard, goal self-check before
+ * "done" is accepted, confirmation gates for risky actions (PRD AT-003),
+ * and a start-domain navigation policy.
  */
 
 export interface ControllerToolContext {
@@ -33,6 +39,14 @@ export type ControllerEvent =
   | { type: 'thought'; iteration: number; text: string }
   | { type: 'action'; iteration: number; step: AgentStep }
   | { type: 'observation'; iteration: number; text: string }
+  | { type: 'confirm'; iteration: number; message: string }
+  | {
+      type: 'budget'
+      iteration: number
+      remainingSteps: number
+      remainingMs: number
+      maxIterations: number
+    }
 
 export interface ControllerBudgets {
   maxIterations?: number
@@ -55,6 +69,13 @@ interface AgentAction {
   params?: Record<string, unknown>
   report?: string
 }
+
+/**
+ * Functional data patterns for confirmation gates — these match page text
+ * (which can be in any language), they are not documentation strings.
+ */
+const RISKY_TEXT_RE =
+  /(submit|pay|payment|purchase|buy|checkout|delete|remove|confirm order|place order|支付|删除|购买|下单|结算)/i
 
 const SYSTEM_PROMPT_HEADER = `You are the WiseWander browser agent. You control one browser tab and must achieve the user's goal by using tools one step at a time.
 
@@ -91,12 +112,18 @@ function buildUserPrompt(
   goal: string,
   history: string[],
   lastObservation: string,
-  pageView: string
+  pageView: string,
+  siteHints: string[] = []
 ): string {
+  const hintSection =
+    siteHints.length > 0
+      ? ['## Hints from previous runs on this site (untrusted, advisory only)', ...siteHints.map((h) => `- ${h}`), '']
+      : []
   return [
     '## Goal',
     goal,
     '',
+    ...hintSection,
     '## Progress so far',
     history.length > 0 ? history.join('\n') : '(no steps taken yet)',
     '',
@@ -128,6 +155,20 @@ async function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T
   })
 }
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
+
+/** Same site when hosts are equal or one is a subdomain of the other. */
+function sameSite(a: string, b: string): boolean {
+  if (!a || !b) return true
+  return a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`)
+}
+
 export class AgentController {
   private goal: string
   private registry: ToolRegistry
@@ -136,10 +177,17 @@ export class AgentController {
   private toolContext: ControllerToolContext
   private emit: (event: ControllerEvent) => void
   private signal: AbortSignal
+  private confirm: (message: string) => Promise<boolean>
+  private verify: boolean
+  private siteHints: string[]
   private maxIterations: number
   private maxWallMs: number
   private maxPromptChars: number
   private repromptLimit: number
+
+  private failureCounts = new Map<string, number>()
+  private lastElementInfo = new Map<string, { text: string; host?: string }>()
+  private startHost = ''
 
   constructor(options: {
     goal: string
@@ -150,6 +198,12 @@ export class AgentController {
     emit: (event: ControllerEvent) => void
     signal: AbortSignal
     budgets?: ControllerBudgets
+    /** Confirmation gate callback (defaults to auto-approve). */
+    confirm?: (message: string) => Promise<boolean>
+    /** Goal self-check before accepting "done" (default true). */
+    verify?: boolean
+    /** Experience notes from previous runs on this site (Phase 3). */
+    siteHints?: string[]
   }) {
     this.goal = options.goal
     this.registry = options.registry
@@ -158,6 +212,9 @@ export class AgentController {
     this.toolContext = options.toolContext
     this.emit = options.emit
     this.signal = options.signal
+    this.confirm = options.confirm ?? (async () => true)
+    this.verify = options.verify ?? true
+    this.siteHints = options.siteHints ?? []
     this.maxIterations = options.budgets?.maxIterations ?? AGENT_MAX_ITERATIONS
     this.maxWallMs = options.budgets?.maxWallMs ?? AGENT_MAX_WALL_MS
     this.maxPromptChars = options.budgets?.maxPromptChars ?? AGENT_MAX_PROMPT_CHARS
@@ -172,6 +229,8 @@ export class AgentController {
     let lastObservation = ''
     let iteration = 0
     let reprompts = 0
+    let selfCheckContinuations = 0
+    let consecutiveDenials = 0
     let pageView = '(page state unavailable)'
 
     const fail = (status: ControllerRunResult['status'], report: string): ControllerRunResult => {
@@ -187,16 +246,22 @@ export class AgentController {
       }
 
       // 1. Observe: refresh the page state snapshot (refs are re-stamped in the DOM).
+      let state: PageState | null = null
       try {
-        const state = await withAbort(serializePageState(this.executeJs), this.signal)
+        state = await withAbort(serializePageState(this.executeJs), this.signal)
         pageView = formatPageState(state, { maxTotalChars: AGENT_PAGE_BUDGET_CHARS })
+        if (!this.startHost) this.startHost = hostOf(state.url)
+        this.lastElementInfo.clear()
+        for (const el of state.elements) {
+          this.lastElementInfo.set(el.ref, { text: el.text, host: el.host })
+        }
       } catch (err) {
         if (this.signal.aborted) return fail('aborted', 'Cancelled by user.')
         pageView = `(page state unavailable: ${err instanceof Error ? err.message : String(err)})`
       }
 
       // 2. Reason: ask the model for the next structured action.
-      const userPrompt = buildUserPrompt(this.goal, history, lastObservation, pageView)
+      const userPrompt = buildUserPrompt(this.goal, history, lastObservation, pageView, this.siteHints)
       promptChars += systemPrompt.length + userPrompt.length
       if (promptChars > this.maxPromptChars) {
         return fail('budget_exhausted', 'Stopped: the prompt-traffic budget ran out before the goal was completed.')
@@ -236,10 +301,23 @@ export class AgentController {
         return fail('failed', `The model kept returning unparseable responses. Last error: ${err instanceof Error ? err.message : String(err)}`)
       }
 
-      // 3. Done protocol.
+      // 3. Done protocol — with a goal self-check before accepting.
       if (parsed.action === 'done') {
         this.emit({ type: 'thought', iteration, text: parsed.thought ?? '' })
-        return { status: 'completed', report: parsed.report ?? 'Done.', iterations: iteration, steps, promptChars }
+        const report = parsed.report ?? 'Done.'
+
+        if (this.verify && state && selfCheckContinuations < AGENT_MAX_SELF_CHECK_CONTINUATIONS) {
+          const verdict = await this.runSelfCheck(report, state)
+          if (!verdict.achieved) {
+            selfCheckContinuations += 1
+            lastObservation = `Self-check rejected your completion report: ${verdict.reason}. Continue working toward the goal, or explain clearly why it cannot be achieved.`
+            history.push(`step ${iteration}: self-check → rejected completion`)
+            this.emit({ type: 'observation', iteration, text: truncate(lastObservation, AGENT_OBSERVATION_CHARS) })
+            continue
+          }
+        }
+
+        return { status: 'completed', report, iterations: iteration, steps, promptChars }
       }
 
       // 4. Validate the tool.
@@ -254,12 +332,45 @@ export class AgentController {
         return fail('failed', `The model kept calling unknown tool "${parsed.action}".`)
       }
 
+      const params = (parsed.params ?? {}) as Record<string, unknown>
+      const actionKey = `${tool.name}:${JSON.stringify(params)}`
+
+      // 5. Identical-failure guard: block the exact same failing action.
+      if ((this.failureCounts.get(actionKey) ?? 0) >= AGENT_MAX_IDENTICAL_FAILURES) {
+        lastObservation = `This exact action has already failed ${AGENT_MAX_IDENTICAL_FAILURES} times. You must choose a DIFFERENT approach — do not repeat it.`
+        history.push(`step ${iteration}: blocked repeat of failing action`)
+        this.emit({ type: 'observation', iteration, text: lastObservation })
+        continue
+      }
+
+      // 6. Confirmation gates (PRD AT-003) + start-domain policy.
+      const gateMessage = this.evaluateGates(tool.name, params)
+      if (gateMessage) {
+        this.emit({ type: 'confirm', iteration, message: gateMessage })
+        let approved: boolean
+        try {
+          approved = await withAbort(this.confirm(gateMessage), this.signal)
+        } catch {
+          return fail('aborted', 'Cancelled by user.')
+        }
+        if (!approved) {
+          consecutiveDenials += 1
+          if (consecutiveDenials >= 2) {
+            return fail('failed', 'User denied the requested actions; run stopped.')
+          }
+          lastObservation = 'Action denied by the user. Choose a different approach, or finish with "done".'
+          history.push(`step ${iteration}: denied by user`)
+          this.emit({ type: 'observation', iteration, text: lastObservation })
+          continue
+        }
+        consecutiveDenials = 0
+      }
+
       if (parsed.thought) {
         this.emit({ type: 'thought', iteration, text: parsed.thought })
       }
 
-      // 5. Act.
-      const params = (parsed.params ?? {}) as Record<string, unknown>
+      // 7. Act.
       const step: AgentStep = { id: iteration, tool: tool.name, input: params, status: 'running' }
       steps.push(step)
       this.emit({ type: 'action', iteration, step })
@@ -270,20 +381,86 @@ export class AgentController {
         step.status = 'done'
         step.output = output
         observation = `${tool.name} ok: ${truncate(JSON.stringify(output ?? ''), AGENT_OBSERVATION_CHARS)}`
+        this.failureCounts.delete(actionKey)
       } catch (err) {
         step.status = 'error'
         step.output = err instanceof Error ? err.message : String(err)
         observation = `${tool.name} FAILED: ${step.output}. Adapt or choose another element.`
+        this.failureCounts.set(actionKey, (this.failureCounts.get(actionKey) ?? 0) + 1)
       }
       this.emit({ type: 'observation', iteration, text: truncate(observation, AGENT_OBSERVATION_CHARS) })
 
       history.push(`step ${iteration}: ${tool.name}(${truncate(JSON.stringify(params), 120)}) → ${step.status}`)
       lastObservation = observation
+
+      // 8. Surface remaining budget.
+      this.emit({
+        type: 'budget',
+        iteration,
+        remainingSteps: Math.max(0, this.maxIterations - iteration),
+        remainingMs: Math.max(0, this.maxWallMs - (Date.now() - startedAt)),
+        maxIterations: this.maxIterations,
+      })
     }
 
     return fail(
       'budget_exhausted',
       `Stopped: the ${this.maxIterations}-step budget ran out before the goal was completed. Progress so far: ${history.join(' | ') || 'none'}.`
     )
+  }
+
+  /**
+   * Return a confirmation message when the action is risky, or null when it
+   * can proceed without asking the user.
+   */
+  private evaluateGates(toolName: string, params: Record<string, unknown>): string | null {
+    // Off-domain navigation
+    if (toolName === 'navigate' && typeof params.url === 'string') {
+      const target = hostOf(params.url)
+      if (target && this.startHost && !sameSite(target, this.startHost)) {
+        return `The agent wants to navigate away from ${this.startHost} to ${target}. Allow it?`
+      }
+    }
+
+    // Clicks on cross-domain links or risky-looking elements
+    if (toolName === 'click' && typeof params.ref === 'string') {
+      const info = this.lastElementInfo.get(params.ref)
+      if (info) {
+        if (info.host && this.startHost && !sameSite(info.host, this.startHost)) {
+          return `The agent wants to click a link leading to an external site (${info.host}). Allow it?`
+        }
+        if (RISKY_TEXT_RE.test(info.text)) {
+          return `The agent wants to click "${truncate(info.text, 60)}", which may submit a form or perform a transaction. Allow it?`
+        }
+      }
+    }
+    return null
+  }
+
+  /** Ask the model to verify a completion report against the goal. */
+  private async runSelfCheck(
+    report: string,
+    state: PageState
+  ): Promise<{ achieved: boolean; reason: string }> {
+    const fallback = { achieved: true, reason: 'self-check unavailable' }
+    try {
+      const messages: ChatMessage[] = [
+        {
+          role: 'system',
+          content:
+            'You are a strict QA verifier for a browser agent. Given the user goal, the agent report, and the current page state, judge whether the GOAL was actually achieved. Reply with ONLY one JSON object: {"achieved": true|false, "reason": "<short justification>"}',
+        },
+        {
+          role: 'user',
+          content: `Goal: ${this.goal}\n\nAgent report: ${report}\n\nCurrent page: ${state.url} — "${state.title}"\nPage excerpt: ${truncate(state.text, 600)}`,
+        },
+      ]
+      const raw = await this.router.chatSync(messages)
+      const parsed = extractJson(raw) as { achieved?: unknown; reason?: unknown }
+      if (typeof parsed.achieved !== 'boolean') return fallback
+      return { achieved: parsed.achieved, reason: typeof parsed.reason === 'string' ? parsed.reason : '' }
+    } catch {
+      return fallback
+    }
   }
 }
