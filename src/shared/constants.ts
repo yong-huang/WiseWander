@@ -1,0 +1,16 @@
+export const OLLAMA_DEFAULT_URL = 'http://localhost:11434'
+export const DEFAULT_MODEL = 'llama3.2'
+export const MAX_CONTEXT_CHARS = 8_000
+export const SUMMARY_CONTEXT_CHARS = 12_000
+export const MAX_RECENTLY_CLOSED = 20
+export const SIDEBAR_DEFAULT_WIDTH = 380
+export const OPENAI_COMPATIBLE_DEFAULT_URL = 'http://localhost:1234'
+export const PROVIDERS_CONFIG_KEY = 'providers'
+export const DB_NAME = 'data.db'
+export const CONFIG_NAME = 'config.json'
+export const RECOMMENDATION_RECOMPUTE_INTERVAL = 4 * 60 * 60 * 1000 // 4h
+export const RECOMMENDATION_CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
+export const RECOMMENDATION_MIN_HISTORY_DELTA = 20
+export const RECOMMENDATION_MAX_HISTORY_SAMPLE = 50
+export const NEW_TAB_URL = 'wisewander://newtab'
+export const BROWSER_ASSISTANT_ID = '__assistant__'

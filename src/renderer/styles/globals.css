@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+/* ── Dark mode support via Tailwind dark: variant ── */
+/* The 'dark' class is toggled on <html> by useTheme hook */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Base layer: light-mode defaults ── */
+@layer base {
+  :root {
+    color-scheme: light;
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f9fafb;
+    --color-bg-tertiary: #f3f4f6;
+    --color-text-primary: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border: #e5e7eb;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-bg-primary: #111827;
+    --color-bg-secondary: #1f2937;
+    --color-bg-tertiary: #374151;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased;
+  }
+
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+/* ── Scrollbar styling ── */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Window drag region (macOS hiddenInset titlebar) */
+  .drag-region {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  .drag-region button,
+  .drag-region input,
+  .drag-region a,
+  .drag-region [role="button"],
+  .drag-region [draggable] {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}

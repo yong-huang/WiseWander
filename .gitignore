@@ -1,0 +1,33 @@
+# Build output
+out/
+
+# Dependencies
+node_modules/
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Archify visual-check machine sidecars (keep the light 1440x900 previews used by docs)
+docs/diagrams/*.visual-check.*
+!docs/diagrams/*.visual-check.1440x900.light.png
+
+# Claude Code
+.claude/
+
+# Build cache
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "WiseWander 系统架构",
+    "locale": "zh-CN",
+    "output": "wisewander-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1380,
+      760
+    ],
+    "views": [
+      {
+        "id": "chat-path",
+        "label": "AI 对话主路径",
+        "focus": [
+          "renderer",
+          "preload",
+          "ipc",
+          "ai",
+          "ollama"
+        ],
+        "note": "从侧栏发问到本地模型流式回包的完整链路。"
+      },
+      {
+        "id": "agent-path",
+        "label": "Agent 自动化路径",
+        "focus": [
+          "ipc",
+          "agent",
+          "webview"
+        ],
+        "note": "规划器生成步骤后经 executeJavaScript 直接驱动页面。"
+      },
+      {
+        "id": "storage",
+        "label": "持久化与隐私",
+        "focus": [
+          "datasvc",
+          "research",
+          "sqlite",
+          "estore",
+          "privacy"
+        ],
+        "note": "浏览器数据、研究推荐与隐私过滤的落点。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "webview",
+      "type": "frontend",
+      "label": "页面 <webview>",
+      "sublabel": "persist:wisewander 会话",
+      "pos": [
+        80,
+        60
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "renderer",
+      "type": "frontend",
+      "label": "Renderer UI",
+      "sublabel": "React 19 · Zustand · 7 stores",
+      "pos": [
+        80,
+        210
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "preload",
+      "type": "security",
+      "label": "Preload 桥",
+      "sublabel": "window.api (contextBridge)",
+      "pos": [
+        350,
+        210
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "ipc",
+      "type": "backend",
+      "label": "IPC Handlers",
+      "sublabel": "9 个域文件 · 约 90 通道",
+      "pos": [
+        600,
+        210
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "ai",
+      "type": "backend",
+      "label": "AI 层 · ModelRouter",
+      "sublabel": "优先级探测 · 逐请求故障转移",
+      "pos": [
+        830,
+        180
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Agent 引擎",
+      "sublabel": "Planner + 7 个工具",
+      "pos": [
+        830,
+        60
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "caps",
+      "type": "backend",
+      "label": "AI 能力集",
+      "sublabel": "爬虫 · 截图 · 监控 · 审计",
+      "pos": [
+        830,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "datasvc",
+      "type": "backend",
+      "label": "浏览器服务",
+      "sublabel": "标签 · 历史 · 书签 · 下载",
+      "pos": [
+        600,
+        330
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "estore",
+      "type": "database",
+      "label": "electron-store",
+      "sublabel": "config.json · providers 键",
+      "pos": [
+        600,
+        470
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "research",
+      "type": "backend",
+      "label": "研究 · 推荐 · 阅读",
+      "sublabel": "兴趣画像 · 24h 缓存",
+      "pos": [
+        830,
+        470
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "privacy",
+      "type": "security",
+      "label": "隐私过滤",
+      "sublabel": "ContentFilter · 指纹防护",
+      "pos": [
+        600,
+        610
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite data.db",
+      "sublabel": "better-sqlite3 · WAL · 11 表",
+      "pos": [
+        1100,
+        300
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "ollama",
+      "type": "external",
+      "label": "Ollama",
+      "sublabel": "localhost:11434",
+      "pos": [
+        1100,
+        60
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "cloud",
+      "type": "cloud",
+      "label": "云端 LLM",
+      "sublabel": "OpenAI / Anthropic / 兼容端点",
+      "pos": [
+        1100,
+        180
+      ],
+      "size": [
+        170,
+        56
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Renderer 进程",
+      "wraps": [
+        "webview",
+        "renderer",
+        "preload"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Main 进程",
+      "wraps": [
+        "ipc",
+        "ai",
+        "agent",
+        "caps",
+        "datasvc",
+        "estore",
+        "research",
+        "privacy",
+        "sqlite"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "外部 AI 服务",
+      "wraps": [
+        "ollama",
+        "cloud"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "renderer-invoke",
+      "from": "renderer",
+      "to": "preload",
+      "label": "window.api.invoke",
+      "variant": "emphasis",
+      "labelAt": [
+        290,
+        284
+      ]
+    },
+    {
+      "id": "preload-ipc",
+      "from": "preload",
+      "to": "ipc",
+      "label": "IPC_CHANNELS 通道"
+    },
+    {
+      "id": "ipc-stream",
+      "from": "ipc",
+      "to": "renderer",
+      "label": "流式事件回推",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "via": [
+        [
+          560,
+          242
+        ],
+        [
+          560,
+          620
+        ],
+        [
+          165,
+          620
+        ]
+      ]
+    },
+    {
+      "id": "ipc-ai",
+      "from": "ipc",
+      "to": "ai",
+      "label": "chat / chatSync",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          680,
+          150
+        ],
+        [
+          680,
+          212
+        ],
+        [
+          790,
+          212
+        ]
+      ]
+    },
+    {
+      "id": "ipc-agent",
+      "from": "ipc",
+      "to": "agent",
+      "label": "执行 / 取消",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          800,
+          242
+        ],
+        [
+          800,
+          92
+        ],
+        [
+          830,
+          92
+        ]
+      ],
+      "labelAt": [
+        800,
+        160
+      ]
+    },
+    {
+      "id": "ipc-caps",
+      "from": "ipc",
+      "to": "caps",
+      "label": "能力调用",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "ipc-datasvc",
+      "from": "ipc",
+      "to": "datasvc",
+      "label": "CRUD",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        680,
+        316
+      ]
+    },
+    {
+      "id": "datasvc-estore",
+      "from": "datasvc",
+      "to": "estore",
+      "label": "workspaces.json",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        680,
+        432
+      ]
+    },
+    {
+      "id": "ai-ollama",
+      "from": "ai",
+      "to": "ollama",
+      "label": "NDJSON 流",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ai-cloud",
+      "from": "ai",
+      "to": "cloud",
+      "label": "SSE 兜底",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        1140,
+        252
+      ]
+    },
+    {
+      "id": "agent-webview",
+      "from": "agent",
+      "to": "webview",
+      "label": "executeJavaScript 驱动页面",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          920,
+          40
+        ],
+        [
+          165,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "privacy-webview",
+      "from": "privacy",
+      "to": "webview",
+      "label": "webRequest 拦截 · 指纹注入",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          680,
+          700
+        ],
+        [
+          40,
+          700
+        ],
+        [
+          40,
+          92
+        ]
+      ]
+    },
+    {
+      "id": "datasvc-db",
+      "from": "datasvc",
+      "to": "sqlite",
+      "label": "SQL",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          800,
+          362
+        ],
+        [
+          800,
+          410
+        ],
+        [
+          1085,
+          410
+        ],
+        [
+          1085,
+          332
+        ]
+      ]
+    },
+    {
+      "id": "research-db",
+      "from": "research",
+      "to": "sqlite",
+      "label": "画像 · 缓存 · 笔记",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          1050,
+          502
+        ],
+        [
+          1050,
+          430
+        ],
+        [
+          1310,
+          430
+        ],
+        [
+          1310,
+          332
+        ]
+      ],
+      "labelAt": [
+        1252,
+        430
+      ]
+    },
+    {
+      "id": "caps-db",
+      "from": "caps",
+      "to": "sqlite",
+      "label": "监控记录",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          920,
+          455
+        ],
+        [
+          1185,
+          455
+        ],
+        [
+          1185,
+          364
+        ]
+      ],
+      "labelAt": [
+        980,
+        455
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "进程模型",
+      "items": [
+        "页面由 Renderer 内 <webview> 承载，主进程 TabManager 仅存元数据",
+        "全部跨进程通信走 IPC_CHANNELS 常量，流式经 webContents.send 推送"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "AI 路由",
+      "items": [
+        "providers 按优先级探测，首个在线者执行本次请求（30s 状态缓存）",
+        "隐私模式强制仅本地；Stop 按钮经 AbortSignal 真正中止 HTTP 流"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "持久化",
+      "items": [
+        "SQLite（WAL）承载书签/历史/阅读/监控/研究 11 张表",
+        "electron-store 保存 providers 优先级与外观/隐私设置，will-download 落库下载记录"
+      ]
+    }
+  ]
+}

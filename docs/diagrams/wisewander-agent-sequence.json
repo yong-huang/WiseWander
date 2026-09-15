@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "WiseWander Agent 任务执行时序",
+    "locale": "zh-CN",
+    "output": "wisewander-agent-sequence.html",
+    "viewBox": [
+      1060,
+      640
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "plan-phase",
+        "label": "规划阶段",
+        "focus": [
+          "panel",
+          "ipc",
+          "planner",
+          "ollama"
+        ],
+        "note": "自然语言任务被分解为 JSON 工具步骤。"
+      },
+      {
+        "id": "exec-phase",
+        "label": "执行与进度回推",
+        "focus": [
+          "ipc",
+          "tools",
+          "webview",
+          "panel"
+        ],
+        "note": "步骤经 executeJavaScript 驱动页面，进度按 tabId 回推。"
+      },
+      {
+        "id": "cancel-path",
+        "label": "取消路径",
+        "focus": [
+          "panel",
+          "ipc"
+        ],
+        "note": "agent:cancel 触发 AbortController，剩余步骤被跳过。"
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "AgentPanel",
+      "sublabel": "agent-store"
+    },
+    {
+      "id": "ipc",
+      "type": "backend",
+      "label": "agent.ipc",
+      "sublabel": "handler + 取消"
+    },
+    {
+      "id": "planner",
+      "type": "backend",
+      "label": "Planner",
+      "sublabel": "工具清单提示词"
+    },
+    {
+      "id": "ollama",
+      "type": "external",
+      "label": "Ollama",
+      "sublabel": "/api/chat"
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "Tools",
+      "sublabel": "7 个注册工具"
+    },
+    {
+      "id": "webview",
+      "type": "frontend",
+      "label": "<webview>",
+      "sublabel": "guest WebContents"
+    }
+  ],
+  "segments": [
+    {
+      "from": 145,
+      "to": 300,
+      "label": "规划"
+    },
+    {
+      "from": 318,
+      "to": 492,
+      "label": "逐步执行"
+    },
+    {
+      "from": 496,
+      "to": 568,
+      "label": "取消（可选）"
+    }
+  ],
+  "messages": [
+    {
+      "id": "execute",
+      "from": "panel",
+      "to": "ipc",
+      "y": 170,
+      "label": "agent:execute(description, wcId, tabId)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "plan-call",
+      "from": "ipc",
+      "to": "planner",
+      "y": 200,
+      "label": "plan(description)"
+    },
+    {
+      "id": "llm-call",
+      "from": "planner",
+      "to": "ollama",
+      "y": 230,
+      "label": "stream:false JSON 规划",
+      "variant": "default"
+    },
+    {
+      "id": "plan-result",
+      "from": "ollama",
+      "to": "planner",
+      "y": 258,
+      "label": "步骤 JSON 数组",
+      "variant": "return"
+    },
+    {
+      "id": "steps-ready",
+      "from": "planner",
+      "to": "ipc",
+      "y": 286,
+      "label": "AgentStep[]（校验工具名）",
+      "variant": "return"
+    },
+    {
+      "id": "plan-event",
+      "from": "ipc",
+      "to": "panel",
+      "y": 314,
+      "label": "agent:step { type:'plan', tabId }",
+      "variant": "dashed"
+    },
+    {
+      "id": "tool-call",
+      "from": "ipc",
+      "to": "tools",
+      "y": 350,
+      "label": "execute(input, toolContext)"
+    },
+    {
+      "id": "page-ops",
+      "from": "tools",
+      "to": "webview",
+      "y": 386,
+      "label": "loadURL / executeJavaScript",
+      "variant": "emphasis"
+    },
+    {
+      "id": "page-result",
+      "from": "webview",
+      "to": "tools",
+      "y": 416,
+      "label": "页面返回值",
+      "variant": "return"
+    },
+    {
+      "id": "step-done",
+      "from": "tools",
+      "to": "ipc",
+      "y": 446,
+      "label": "step.output",
+      "variant": "return"
+    },
+    {
+      "id": "step-event",
+      "from": "ipc",
+      "to": "panel",
+      "y": 476,
+      "label": "agent:step { step_update, tabId }",
+      "variant": "dashed"
+    },
+    {
+      "id": "cancel-call",
+      "from": "panel",
+      "to": "ipc",
+      "y": 508,
+      "label": "agent:cancel(taskId)",
+      "variant": "security"
+    },
+    {
+      "id": "cancel-done",
+      "from": "ipc",
+      "to": "panel",
+      "y": 538,
+      "label": "剩余步骤跳过 · status=failed",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "panel",
+      "from": 164,
+      "to": 544,
+      "type": "frontend"
+    },
+    {
+      "participant": "ipc",
+      "from": 170,
+      "to": 544,
+      "type": "backend"
+    },
+    {
+      "participant": "planner",
+      "from": 194,
+      "to": 292,
+      "type": "backend"
+    },
+    {
+      "participant": "ollama",
+      "from": 224,
+      "to": 262,
+      "type": "external"
+    },
+    {
+      "participant": "tools",
+      "from": 380,
+      "to": 452,
+      "type": "backend"
+    },
+    {
+      "participant": "webview",
+      "from": 402,
+      "to": 422,
+      "type": "frontend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一次性规划",
+      "items": [
+        "产出步骤数组而非 ReAct 循环",
+        "<previous_result> 传递上一步输出"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "页面驱动",
+      "items": [
+        "executeJavaScript 注入 guest 执行",
+        "进度事件携带 tabId，切标签不串会话"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "真取消",
+      "items": [
+        "agent:cancel(taskId) 触发中止",
+        "循环在步骤间检查信号并跳过"
+      ]
+    }
+  ]
+}
