@@ -1,332 +1,332 @@
-# WiseWander — 产品需求文档 (PRD)
+# WiseWander — Product Requirements Document
 
-> 版本: 1.1.0
-> 更新日期: 2026-09-15
-> 状态: Active — v0.1.0 MVP 已交付，并超额实现部分 P1/P2 项（见文末实现状态）
-
----
-
-## 1. 产品愿景
-
-**WiseWander** 是一款 AI Native 浏览器，将 AI 能力深度嵌入浏览体验的每一层。不同于传统浏览器的"插件式 AI"，WiseWander 从架构层面将本地大语言模型（通过 Ollama）作为一等公民，让用户在浏览网页时获得智能对话、自动化操作、深度研究和隐私保护的原生体验。
-
-### 核心定位
-
-- **AI 原生**：AI 不是附加功能，而是浏览器的核心交互方式
-- **本地优先**：通过 Ollama 优先使用本地模型，保护用户隐私
-- **macOS 优先**：针对 macOS 平台优化体验，后续扩展到 Windows/Linux
+> Version: 1.1.0
+> Updated: 2026-09-15
+> Status: Active — the v0.1.0 MVP has shipped, with some P1/P2 items delivered ahead of plan (see implementation status at the end)
 
 ---
 
-## 2. 用户画像
+## 1. Product Vision
 
-### 2.1 主要用户 — 知识工作者
+**WiseWander** is an AI-native browser that embeds AI deeply into every layer of the browsing experience. Unlike "plugin-style AI" in traditional browsers, WiseWander treats a local large language model (via Ollama) as a first-class citizen at the architecture level, giving users native intelligent conversation, automated operations, deep research, and privacy protection while browsing.
 
-| 属性 | 描述 |
+### Core Positioning
+
+- **AI-native**: AI is not an add-on — it is the browser's core interaction model
+- **Local-first**: local models via Ollama take priority, protecting user privacy
+- **macOS-first**: optimized for macOS, with Windows/Linux to follow
+
+---
+
+## 2. User Personas
+
+### 2.1 Primary — Knowledge Workers
+
+| Attribute | Description |
 |------|------|
-| 职业 | 研究员、分析师、开发者、内容创作者 |
-| 年龄 | 25-45 岁 |
-| 场景 | 频繁阅读长文、跨多个来源收集信息、需要总结和对比 |
-| 痛点 | 信息过载、重复操作繁琐、隐私顾虑 |
-| 期望 | 浏览器能"理解"内容并主动辅助 |
+| Occupation | Researchers, analysts, developers, content creators |
+| Age | 25-45 |
+| Scenario | Frequent long-form reading, collecting information across many sources, summarizing and comparing |
+| Pain points | Information overload, repetitive chores, privacy concerns |
+| Expectations | The browser "understands" content and proactively assists |
 
-### 2.2 次要用户 — 效率爱好者
+### 2.2 Secondary — Efficiency Enthusiasts
 
-| 属性 | 描述 |
+| Attribute | Description |
 |------|------|
-| 职业 | 学生、自由职业者、创业者 |
-| 场景 | 自动填表、批量搜索、快速获取摘要 |
-| 痛点 | 重复性网页操作耗时 |
-| 期望 | 用自然语言指挥浏览器完成任务 |
+| Occupation | Students, freelancers, entrepreneurs |
+| Scenario | Auto-filling forms, batch searching, quick summaries |
+| Pain points | Repetitive web operations are time-consuming |
+| Expectations | Direct the browser with natural language |
 
-### 2.3 第三类用户 — 隐私敏感用户
+### 2.3 Tertiary — Privacy-Sensitive Users
 
-| 属性 | 描述 |
+| Attribute | Description |
 |------|------|
-| 特征 | 关注数据安全，拒绝云端 AI 服务 |
-| 场景 | 处理敏感文档、机密信息浏览 |
-| 痛点 | 主流浏览器 AI 功能需上传数据到云端 |
-| 期望 | AI 能力完全在本地运行，零数据泄露 |
+| Traits | Data-security conscious, refuse cloud AI services |
+| Scenario | Sensitive documents, confidential browsing |
+| Pain points | Mainstream browsers upload data to the cloud for AI features |
+| Expectations | AI runs entirely locally with zero data leakage |
 
 ---
 
-## 3. 功能需求
+## 3. Functional Requirements
 
-### 优先级定义
+### Priority Definitions
 
-- **P0**：MVP 必须，无此功能产品不成立
-- **P1**：核心差异化功能，版本 1.0 必须
-- **P2**：增强体验，后续版本迭代
-
----
-
-### 3.1 P0 — 浏览器基础能力
-
-#### 3.1.1 标签管理
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| BR-001 | 新建/关闭标签 | 支持快捷键和按钮操作 |
-| BR-002 | 标签切换 | 点击切换，支持快捷键 Cmd+1~9 |
-| BR-003 | 标签拖拽排序 | 拖拽调整标签顺序 |
-| BR-004 | 标签预览 | 悬停显示页面缩略图 |
-| BR-005 | 标签分组 | 将标签归入命名分组，可折叠 |
-| BR-006 | 标签恢复 | 关闭后可从历史中恢复（Cmd+Shift+T） |
-
-#### 3.1.2 导航
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| BR-007 | 地址栏 | 统一搜索/URL 输入，支持自动补全 |
-| BR-008 | 前进/后退 | 标准浏览器导航 |
-| BR-009 | 刷新/强制刷新 | 支持 Cmd+R / Cmd+Shift+R |
-| BR-010 | 页面加载状态 | 地址栏显示加载进度 |
-
-#### 3.1.3 书签
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| BR-011 | 添加/删除书签 | Cmd+D 快速收藏 |
-| BR-012 | 书签栏 | 显示在地址栏下方 |
-| BR-013 | 书签管理器 | 搜索、编辑、文件夹组织 |
-| BR-014 | 书签同步 | 导入/导出 HTML 书签文件 |
-
-#### 3.1.4 历史记录
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| BR-015 | 浏览历史 | 按时间线展示访问记录 |
-| BR-016 | 历史搜索 | 按关键词搜索历史 |
-| BR-017 | 清除历史 | 支持按时间范围清除 |
-
-#### 3.1.5 下载管理
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| BR-018 | 下载文件 | 显示下载进度和状态 |
-| BR-019 | 下载管理器 | 查看、打开、删除下载项 |
-| BR-020 | 下载位置设置 | 可自定义下载目录 |
+- **P0**: MVP must-have — the product does not stand without it
+- **P1**: Core differentiators, required for version 1.0
+- **P2**: Enhancements, for later iterations
 
 ---
 
-### 3.2 P0 — AI 侧边栏
+### 3.1 P0 — Browser Fundamentals
 
-#### 3.2.1 页面对话
+#### 3.1.1 Tab Management
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| AI-001 | 智能对话 | 基于当前页面内容进行多轮对话 |
-| AI-002 | 上下文感知 | 自动提取页面文本、结构、元数据作为上下文 |
-| AI-003 | 引用定位 | AI 回答中标注来源段落，点击可跳转 |
-| AI-004 | 多模态理解 | 支持识别页面中的图片、表格内容 |
+| ID | Feature | Description |
+|----|----|------|
+| BR-001 | New/close tabs | Via shortcuts and buttons |
+| BR-002 | Tab switching | Click to switch; shortcuts Cmd+1~9 |
+| BR-003 | Tab drag reorder | Drag to adjust tab order |
+| BR-004 | Tab preview | Hover shows page thumbnail |
+| BR-005 | Tab groups | Named, collapsible groups |
+| BR-006 | Tab restore | Restore closed tabs from history (Cmd+Shift+T) |
 
-#### 3.2.2 页面摘要
+#### 3.1.2 Navigation
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| AI-005 | 一键摘要 | 自动生成长文摘要（核心观点 + 关键信息） |
-| AI-006 | 可调摘要长度 | 支持"简短/标准/详细"三档 |
-| AI-007 | 结构化摘要 | 按章节/段落生成层次化摘要 |
-| AI-008 | 摘要导出 | 摘要结果可复制或导出为 Markdown |
+| ID | Feature | Description |
+|----|----|------|
+| BR-007 | Address bar | Unified search/URL input with autocomplete |
+| BR-008 | Back/forward | Standard browser navigation |
+| BR-009 | Refresh/force refresh | Cmd+R / Cmd+Shift+R |
+| BR-010 | Page load state | Address bar shows load progress |
 
-#### 3.2.3 翻译
+#### 3.1.3 Bookmarks
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| AI-009 | 全页翻译 | 基于本地模型的整页翻译 |
-| AI-010 | 选区翻译 | 选中文本后右键翻译 |
-| AI-011 | 双语对照 | 翻译结果与原文逐段对照显示 |
-| AI-012 | 语言自动检测 | 自动识别页面语言 |
+| ID | Feature | Description |
+|----|----|------|
+| BR-011 | Add/remove bookmarks | Cmd+D quick bookmark |
+| BR-012 | Bookmarks bar | Shown below the address bar |
+| BR-013 | Bookmark manager | Search, edit, folder organization |
+| BR-014 | Bookmark sync | Import/export HTML bookmark files |
 
----
+#### 3.1.4 History
 
-### 3.3 P0 — Ollama 本地模型连接与配置
+| ID | Feature | Description |
+|----|----|------|
+| BR-015 | Browsing history | Visit records on a timeline |
+| BR-016 | History search | Keyword search over history |
+| BR-017 | Clear history | Clear by time range |
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| OL-001 | Ollama 连接检测 | 启动时自动检测本地 Ollama 服务 |
-| OL-002 | 模型列表展示 | 显示已安装模型及大小信息 |
-| OL-003 | 模型选择 | 用户可选择默认对话模型 |
-| OL-004 | 模型下载 | 通过 Ollama CLI 拉取新模型 |
-| OL-005 | 连接状态指示 | UI 显示 Ollama 连接状态（在线/离线/错误） |
-| OL-006 | API 端点配置 | 支持自定义 Ollama 服务地址（默认 localhost:11434） |
-| OL-007 | 流式响应 | AI 响应以流式方式逐步显示 |
+#### 3.1.5 Downloads
 
----
-
-### 3.4 P1 — AI 自动化操作
-
-#### 3.4.1 表单填写
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| AT-001 | 自然语言填表 | 用户用自然语言描述，AI 自动定位并填写表单 |
-| AT-002 | 智能字段匹配 | AI 理解表单语义，正确映射用户意图到字段 |
-| AT-003 | 用户确认机制 | 提交前展示填写结果，用户确认后执行 |
-
-#### 3.4.2 自动搜索与导航
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| AT-004 | 智能搜索 | 用自然语言描述需求，AI 构建搜索查询并执行 |
-| AT-005 | 页面导航 | AI 理解指令后点击页面元素完成导航 |
-| AT-006 | 操作录制回放 | 记录用户操作序列，支持一键回放 |
-
-#### 3.4.3 数据采集
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| AT-007 | 结构化提取 | AI 从页面提取指定类型的数据（表格、列表等） |
-| AT-008 | 批量采集 | 跨多个页面采集同类数据 |
-| AT-009 | 数据导出 | 采集结果导出为 JSON / CSV / Markdown |
+| ID | Feature | Description |
+|----|----|------|
+| BR-018 | Download files | Show download progress and status |
+| BR-019 | Download manager | View, open, delete download items |
+| BR-020 | Download location | Customizable download directory |
 
 ---
 
-### 3.5 P1 — 智能研究助手
+### 3.2 P0 — AI Sidebar
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| RS-001 | 多标签协同 | 在多个标签页间聚合和关联信息 |
-| RS-002 | 信息对比 | 自动对比不同来源的信息，高亮差异 |
-| RS-003 | 研究报告生成 | 将收集的信息整理为结构化报告 |
-| RS-004 | 来源追溯 | 报告中的每条信息标注来源页面和位置 |
-| RS-005 | 知识图谱 | 可视化展示研究主题的关键概念和关系 |
-| RS-006 | 研究会话 | 研究过程可保存为会话，后续继续 |
+#### 3.2.1 Page Conversation
 
----
+| ID | Feature | Description |
+|----|----|------|
+| AI-001 | Smart conversation | Multi-turn conversation grounded in the current page |
+| AI-002 | Context awareness | Auto-extracts page text, structure, metadata as context |
+| AI-003 | Source citations | Answers cite source paragraphs; click to jump |
+| AI-004 | Multimodal understanding | Recognize images and tables on the page |
 
-### 3.6 P1 — 隐私保护浏览模式
+#### 3.2.2 Page Summaries
 
-| ID | 功能 | 描述 |
-|----|------|------|
-| PV-001 | 隐私模式入口 | 一键进入隐私浏览模式 |
-| PV-002 | 本地强制处理 | 隐私模式下 AI 仅使用本地模型 |
-| PV-003 | 无痕浏览 | 隐私模式结束时不保留历史/Cookie/缓存 |
-| PV-004 | 内容过滤 | 可选的广告/追踪器拦截 |
-| PV-005 | 指纹保护 | 基础浏览器指纹随机化 |
-| PV-006 | 隐私仪表盘 | 展示当前页面的追踪器数量和类型 |
+| ID | Feature | Description |
+|----|----|------|
+| AI-005 | One-click summary | Auto-summarize long articles (key points + key info) |
+| AI-006 | Adjustable length | Short / standard / detailed |
+| AI-007 | Structured summary | Hierarchical summaries by section/paragraph |
+| AI-008 | Summary export | Copy or export summaries as Markdown |
 
----
+#### 3.2.3 Translation
 
-### 3.7 P2 — 高级功能
-
-| ID | 功能 | 描述 |
-|----|------|------|
-| AD-001 | 全局快捷键 | 自定义 AI 功能快捷键 |
-| AD-002 | 主题系统 | 亮色/暗色/跟随系统 |
-| AD-003 | 扩展系统 | 支持加载 Chrome 扩展（Chromium 兼容） |
-| AD-004 | 命令面板 | Cmd+K 唤起，支持模糊搜索命令和 AI 指令 |
-| AD-005 | 工作区 | 保存和恢复完整的标签/窗口状态 |
-| AD-006 | 多语言 UI | 界面支持中文/英文切换 |
-| AD-007 | 云模型备选 | 可选配置 OpenAI / Claude API 作为补充模型 |
+| ID | Feature | Description |
+|----|----|------|
+| AI-009 | Full-page translation | Local-model translation of entire pages |
+| AI-010 | Selection translation | Translate selected text via right-click |
+| AI-011 | Bilingual view | Paragraph-by-paragraph original + translation |
+| AI-012 | Language auto-detect | Detect page language automatically |
 
 ---
 
-## 4. 非功能需求
+### 3.3 P0 — Ollama Local Model Connection & Configuration
 
-### 4.1 性能
-
-| ID | 指标 | 目标 |
-|----|------|------|
-| NF-001 | 冷启动时间 | < 3 秒（不含 Ollama 启动） |
-| NF-002 | AI 首字延迟 | < 500ms（本地模型，取决于硬件） |
-| NF-003 | 内存占用 | 基础浏览 < 500MB，AI 功能启用 < 1GB（不含模型内存） |
-| NF-004 | 页面加载 | 与 Chromium 原生性能持平 |
-| NF-005 | 侧边栏响应 | 打开/关闭动画 < 200ms |
-
-### 4.2 安全
-
-| ID | 指标 | 描述 |
-|----|------|------|
-| NF-006 | 进程隔离 | 渲染进程沙箱化，禁止直接访问 Node.js API |
-| NF-007 | IPC 安全 | 所有 IPC 通信经过验证和过滤 |
-| NF-008 | 内容安全策略 | 严格 CSP，防止 XSS |
-| NF-009 | 自动更新 | 支持 HTTPS 安全自动更新 |
-| NF-010 | 敏感数据加密 | 本地存储的密码/Token 加密保存 |
-
-### 4.3 隐私
-
-| ID | 指标 | 描述 |
-|----|------|------|
-| NF-011 | 默认本地处理 | AI 推理默认在本地完成 |
-| NF-012 | 数据最小化 | 仅收集必要的页面上下文用于 AI 处理 |
-| NF-013 | 透明度 | 明确告知用户哪些数据发送给模型 |
-| NF-014 | 用户控制 | 用户可随时禁用 AI 功能、清除 AI 历史 |
-
-### 4.4 可靠性
-
-| ID | 指标 | 描述 |
-|----|------|------|
-| NF-015 | 崩溃恢复 | 单标签崩溃不影响其他标签和浏览器 |
-| NF-016 | 数据持久化 | 书签/设置/会话数据可靠存储 |
-| NF-017 | 优雅降级 | Ollama 不可用时浏览器基础功能不受影响 |
+| ID | Feature | Description |
+|----|----|------|
+| OL-001 | Connection detection | Auto-detect the local Ollama service at startup |
+| OL-002 | Model list | Show installed models with sizes |
+| OL-003 | Model selection | Choose the default chat model |
+| OL-004 | Model download | Pull new models via the Ollama API |
+| OL-005 | Connection indicator | UI shows Ollama status (online/offline/error) |
+| OL-006 | Endpoint configuration | Custom Ollama address (default localhost:11434) |
+| OL-007 | Streaming responses | AI responses stream token by token |
 
 ---
 
-## 5. MVP 范围定义
+### 3.4 P1 — AI Automation
 
-### MVP 包含 (v0.1.0)
+#### 3.4.1 Form Filling
 
-1. **浏览器基础能力**
-   - 标签管理（新建/关闭/切换/恢复）
-   - 地址栏导航
-   - 前进/后退/刷新
-   - 书签（添加/删除/书签栏）
-   - 历史记录
-   - 基础下载管理
+| ID | Feature | Description |
+|----|----|------|
+| AT-001 | Natural-language form filling | Describe in natural language; AI locates and fills forms |
+| AT-002 | Smart field matching | AI maps intent to fields semantically |
+| AT-003 | User confirmation | Show results before submitting; execute after confirmation |
 
-2. **AI 侧边栏**
-   - 页面对话（基于页面内容）
-   - 一键摘要
-   - 选区翻译
+#### 3.4.2 Automated Search & Navigation
 
-3. **Ollama 集成**
-   - 自动检测本地 Ollama
-   - 模型选择
-   - 流式响应显示
+| ID | Feature | Description |
+|----|----|------|
+| AT-004 | Smart search | Describe the need; AI builds and runs the query |
+| AT-005 | Page navigation | AI clicks page elements to navigate |
+| AT-006 | Operation recording & replay | Record user action sequences; replay with one click |
 
-### MVP 不包含
+#### 3.4.3 Data Collection
 
-- AI 自动化操作（P1）
-- 智能研究助手（P1）
-- 隐私保护浏览模式（P1）
-- 标签分组、标签预览（P0 但可延后）
-- 扩展系统、命令面板（P2）
-- 云模型备选（P2）
-
-### MVP 成功标准
-
-- 用户可正常浏览网页（与 Chrome 基础体验持平）
-- 用户可在侧边栏与当前页面内容对话
-- Ollama 连接稳定，流式响应正常
-- macOS 上运行流畅，无崩溃
+| ID | Feature | Description |
+|----|----|------|
+| AT-007 | Structured extraction | Extract specified data types (tables, lists) from pages |
+| AT-008 | Batch collection | Collect the same data across multiple pages |
+| AT-009 | Data export | Export results as JSON / CSV / Markdown |
 
 ---
 
-## 6. 版本规划
+### 3.5 P1 — Research Assistant
 
-| 版本 | 范围 | 预计周期 |
+| ID | Feature | Description |
+|----|----|------|
+| RS-001 | Multi-tab coordination | Aggregate and correlate information across tabs |
+| RS-002 | Information comparison | Auto-compare sources, highlight differences |
+| RS-003 | Report generation | Organize collected information into structured reports |
+| RS-004 | Source tracing | Every claim cites its source page and location |
+| RS-005 | Knowledge graph | Visualize key concepts and relations of a research topic |
+| RS-006 | Research sessions | Save research as sessions to continue later |
+
+---
+
+### 3.6 P1 — Private Browsing Mode
+
+| ID | Feature | Description |
+|----|----|------|
+| PV-001 | Privacy mode entry | One-click private browsing mode |
+| PV-002 | Forced local processing | In privacy mode AI uses only local models |
+| PV-003 | No traces | No history/cookies/cache retained after private mode ends |
+| PV-004 | Content filtering | Optional ad/tracker blocking |
+| PV-005 | Fingerprint protection | Basic browser fingerprint randomization |
+| PV-006 | Privacy dashboard | Show tracker counts and types for the current page |
+
+---
+
+### 3.7 P2 — Advanced Features
+
+| ID | Feature | Description |
+|----|----|------|
+| AD-001 | Global shortcuts | Customizable AI feature shortcuts |
+| AD-002 | Theme system | Light / dark / follow system |
+| AD-003 | Extension system | Load Chrome extensions (Chromium compatible) |
+| AD-004 | Command palette | Cmd+K with fuzzy search over commands and AI actions |
+| AD-005 | Workspaces | Save and restore complete tab/window states |
+| AD-006 | Multi-language UI | Chinese/English interface |
+| AD-007 | Cloud model fallback | Optional OpenAI / Claude APIs as backup models |
+
+---
+
+## 4. Non-Functional Requirements
+
+### 4.1 Performance
+
+| ID | Metric | Target |
+|----|------|------|
+| NF-001 | Cold start | < 3s (excluding Ollama startup) |
+| NF-002 | AI first-token latency | < 500ms (local model, hardware dependent) |
+| NF-003 | Memory | < 500MB base browsing, < 1GB with AI enabled (excluding model memory) |
+| NF-004 | Page load | On par with native Chromium |
+| NF-005 | Sidebar response | Open/close animation < 200ms |
+
+### 4.2 Security
+
+| ID | Metric | Description |
+|----|------|------|
+| NF-006 | Process isolation | Sandboxed renderer; no direct Node.js access |
+| NF-007 | IPC security | All IPC traffic validated and filtered |
+| NF-008 | Content security policy | Strict CSP to prevent XSS |
+| NF-009 | Auto update | Secure HTTPS auto-update |
+| NF-010 | Data encryption | Local passwords/tokens encrypted at rest |
+
+### 4.3 Privacy
+
+| ID | Metric | Description |
+|----|------|------|
+| NF-011 | Local by default | AI inference runs locally by default |
+| NF-012 | Data minimization | Only necessary page context is collected for AI |
+| NF-013 | Transparency | Clearly communicate what data is sent to models |
+| NF-014 | User control | Users can disable AI features and clear AI history anytime |
+
+### 4.4 Reliability
+
+| ID | Metric | Description |
+|----|------|------|
+| NF-015 | Crash isolation | One crashed tab does not affect other tabs or the browser |
+| NF-016 | Data durability | Bookmarks/settings/sessions stored reliably |
+| NF-017 | Graceful degradation | Core browsing unaffected when Ollama is unavailable |
+
+---
+
+## 5. MVP Scope
+
+### MVP Includes (v0.1.0)
+
+1. **Browser fundamentals**
+   - Tab management (new/close/switch/restore)
+   - Address bar navigation
+   - Back/forward/refresh
+   - Bookmarks (add/remove/bookmarks bar)
+   - History
+   - Basic download management
+
+2. **AI sidebar**
+   - Page conversation (grounded in page content)
+   - One-click summaries
+   - Selection translation
+
+3. **Ollama integration**
+   - Auto-detect local Ollama
+   - Model selection
+   - Streaming responses
+
+### MVP Excludes
+
+- AI automation (P1)
+- Research assistant (P1)
+- Private browsing mode (P1)
+- Tab groups, tab previews (P0, may be deferred)
+- Extension system, command palette (P2)
+- Cloud model fallback (P2)
+
+### MVP Success Criteria
+
+- Users can browse normally (on par with basic Chrome experience)
+- Users can converse with sidebar AI grounded in the current page
+- Ollama connection is stable with working streaming responses
+- Smooth on macOS with no crashes
+
+---
+
+## 6. Release Plan
+
+| Version | Scope | Timeline |
 |------|------|----------|
-| v0.1.0 (MVP) | 浏览器基础 + AI 侧边栏 + Ollama | 第 1-4 周 |
-| v0.2.0 | AI 自动化操作 | 第 5-8 周 |
-| v0.3.0 | 智能研究助手 | 第 9-12 周 |
-| v0.4.0 | 隐私保护浏览 | 第 13-16 周 |
-| v1.0.0 | 全部 P2 功能 + 稳定性打磨 | 第 17-20 周 |
+| v0.1.0 (MVP) | Browser basics + AI sidebar + Ollama | Weeks 1-4 |
+| v0.2.0 | AI automation | Weeks 5-8 |
+| v0.3.0 | Research assistant | Weeks 9-12 |
+| v0.4.0 | Private browsing | Weeks 13-16 |
+| v1.0.0 | All P2 features + stability polish | Weeks 17-20 |
 
 ---
 
-## 7. 实现状态（2026-09-15 核对）
+## 7. Implementation Status (verified 2026-09-15)
 
-| 范围 | 状态 |
+| Scope | Status |
 |------|------|
-| P0 浏览器基础（标签/导航/书签/历史） | ✅ 已实现（标签分组 BR-005、标签预览 BR-004 未做；书签管理器 BR-013 部分——有搜索，无文件夹 UI；同步 BR-014 未做） |
-| P0 下载管理（BR-018~020） | ✅ 已实现：真实下载进度、取消、记录落库（本次修复接入） |
-| P0 AI 侧边栏（AI-001~008） | ✅ 页面对话/摘要/翻译已实现；AI-003 引用定位、AI-004 多模态、AI-007 结构化摘要、AI-010 全页翻译未做 |
-| P0 Ollama 集成（OL-001~007） | ✅ 全部实现；模型拉取带实时进度 |
-| P1 AI 自动化（AT-001~009） | ⚠️ 部分：Agent 规划/执行/取消已实现；操作录制回放 AT-006、用户确认机制 AT-003 未做 |
-| P1 研究助手（RS-001~006） | ⚠️ 部分：报告生成/多标签来源/研究工作台已实现；知识图谱 RS-005 未做 |
-| P1 隐私模式（PV-001~006） | ⚠️ 大部分：内容过滤（分类统计）、指纹防护、隐私模式（强制本地 AI）已实现；无痕分区 PV-003、隐私仪表盘 PV-006 部分（有会话统计） |
-| P2 高级功能 | ⚠️ 部分：命令面板 AD-004、工作区 AD-005、主题 AD-002、云模型备选 AD-007（多 provider 优先级路由）已实现；扩展系统 AD-003、多语言 UI AD-006 未做 |
-| 超出 PRD | AI 能力集 10 项（爬虫/整页截图/数据提取/多标签分析/CSS 编辑/无障碍审计/Markdown 导出/页面监控/模板导出/设计分析）、自研 DevTools、阅读队列、语义书签搜索、双助手工具体系 |
+| P0 browser basics (tabs/navigation/bookmarks/history) | ✅ Done (BR-005 tab groups and BR-004 tab previews not built; BR-013 bookmark manager partial — search exists, no folder UI; BR-014 sync not built) |
+| P0 downloads (BR-018~020) | ✅ Done: real download progress, cancel, persisted records (wired up in this round of fixes) |
+| P0 AI sidebar (AI-001~008) | ✅ Page conversation / summaries / translate shipped; AI-003 source citations, AI-004 multimodal, AI-007 structured summaries, AI-010 full-page translation not built |
+| P0 Ollama integration (OL-001~007) | ✅ All done; model pulls show live progress |
+| P1 AI automation (AT-001~009) | ⚠️ Partial: agent planning/execution/cancellation shipped; AT-006 operation recording and AT-003 confirmation flow not built |
+| P1 research assistant (RS-001~006) | ⚠️ Partial: report generation / multi-tab sources / research workbench shipped; RS-005 knowledge graph not built |
+| P1 privacy mode (PV-001~006) | ⚠️ Mostly: content filtering (per-category stats), fingerprint protection, privacy mode (forced local AI) shipped; PV-003 private partition and PV-006 dashboard partial (session stats exist) |
+| P2 advanced | ⚠️ Partial: command palette AD-004, workspaces AD-005, themes AD-002, cloud model fallback AD-007 (multi-provider priority routing) shipped; extensions AD-003 and multi-language UI AD-006 not built |
+| Beyond PRD | AI capability suite (10 tools: crawler / full-page screenshot / data extraction / multi-tab analysis / CSS editor / accessibility audit / markdown export / page monitoring / template export / design analysis), custom DevTools, reading queue, semantic bookmark search, dual-assistant tool system |
 
-> 注：当前版本号保持 0.1.0（package.json），实际完成度介于规划的 v0.3 ~ v0.4 之间。
+> Note: the package version remains 0.1.0 (package.json); actual completion sits between the planned v0.3 and v0.4.

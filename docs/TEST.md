@@ -1,62 +1,62 @@
-# WiseWander — 测试文档
+# WiseWander — Test Documentation
 
-> 版本: 1.1.0
-> 更新日期: 2026-09-15
-> 状态: Active
+> Version: 1.1.0
+> Updated: 2026-09-15
+> Status: Active
 
 ---
 
-## 1. 测试策略
+## 1. Testing Strategy
 
-### 1.1 测试金字塔
+### 1.1 Test Pyramid
 
 ```
           ┌──────────┐
-          │   E2E    │        少量，覆盖关键用户流程
+          │   E2E    │        Few — cover key user flows
           │  Tests   │        Playwright
          ┌┴──────────┴┐
-         │ Integration │      中等数量，覆盖模块交互
+         │ Integration │      Moderate — cover module interactions
          │    Tests    │      Vitest + Electron
         ┌┴─────────────┴┐
-        │   Unit Tests   │    大量，覆盖核心逻辑
+        │   Unit Tests   │    Many — cover core logic
         │                │    Vitest
         └────────────────┘
 ```
 
-### 1.2 测试分层定义
+### 1.2 Test Layer Definitions
 
-| 层级 | 范围 | 工具 | 目标覆盖率 | 运行频率 |
+| Layer | Scope | Tools | Target Coverage | Frequency |
 |------|------|------|-----------|----------|
-| 单元测试 | 纯函数、服务类、工具方法 | Vitest | ≥ 80% | 每次提交 |
-| 集成测试 | IPC 通信、数据库、Ollama 对接 | Vitest + electron-vitest | ≥ 60% 核心路径 | 每次 PR |
-| E2E 测试 | 完整用户流程 | Playwright | 关键路径 100% | 每日 / 发布前 |
+| Unit tests | Pure functions, service classes, utility methods | Vitest | ≥ 80% | Every commit |
+| Integration tests | IPC communication, database, Ollama integration | Vitest + electron-vitest | ≥ 60% of core paths | Every PR |
+| E2E tests | Complete user flows | Playwright | 100% of critical paths | Daily / pre-release |
 
-### 1.3 测试原则
+### 1.3 Testing Principles
 
-1. **Mock 边界，测试逻辑**：对外部依赖（Ollama API、文件系统）使用 Mock，重点测试内部逻辑
-2. **不测框架**：不测试 React 渲染、Electron 启动等框架行为
-3. **可重复**：所有测试可在任何开发机器上独立运行，不依赖外部服务状态
-4. **快速反馈**：单元测试 < 10s，集成测试 < 60s，E2E 测试 < 5min
+1. **Mock boundaries, test logic**: Mock external dependencies (Ollama API, file system) and focus on testing internal logic
+2. **Don't test the framework**: Do not test framework behavior such as React rendering or Electron startup
+3. **Repeatable**: All tests run standalone on any dev machine, without depending on external service state
+4. **Fast feedback**: Unit tests < 10s, integration tests < 60s, E2E tests < 5min
 
 ---
 
-## 2. 测试工具链
+## 2. Testing Toolchain
 
-### 2.1 工具选型
+### 2.1 Tool Selection
 
-| 工具 | 版本 | 用途 |
+| Tool | Version | Purpose |
 |------|------|------|
-| Vitest | 3.x | 单元测试 + 集成测试运行器 |
-| @electron-vitest | 最新 | Electron 环境下的集成测试 |
-| Playwright | 1.50+ | E2E 测试（浏览器自动化） |
-| @testing-library/react | 最新 | React 组件测试工具（规划选型，当前未引入） |
-| msw | 最新 | HTTP Mock（模拟 Ollama API；规划选型，当前未引入，Ollama mock 由手写 stub 承担） |
-| faker | 最新 | 测试数据生成（规划选型，当前未引入） |
+| Vitest | 3.x | Unit + integration test runner |
+| @electron-vitest | latest | Integration tests in the Electron environment |
+| Playwright | 1.50+ | E2E tests (browser automation) |
+| @testing-library/react | latest | React component testing utilities (planned; not yet adopted) |
+| msw | latest | HTTP mocking for the Ollama API (planned; not yet adopted — Ollama mocking is handled by hand-written stubs) |
+| faker | latest | Test data generation (planned; not yet adopted) |
 
-### 2.2 配置文件
+### 2.2 Configuration Files
 
 ```typescript
-// vitest.config.ts — 单元测试
+// vitest.config.ts — unit tests
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -85,7 +85,7 @@ export default defineConfig({
 ```
 
 ```typescript
-// vitest.config.react.ts — React 组件测试
+// vitest.config.react.ts — React component tests
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
@@ -101,7 +101,7 @@ export default defineConfig({
 ```
 
 ```typescript
-// playwright.config.ts — E2E 测试
+// playwright.config.ts — E2E tests
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
@@ -121,14 +121,14 @@ export default defineConfig({
 });
 ```
 
-### 2.3 测试目录结构
+### 2.3 Test Directory Structure
 
 ```
 tests/
 ├── setup/
-│   ├── react-setup.ts              # React 测试环境配置
-│   ├── electron-setup.ts           # Electron 测试环境配置
-│   └── ollama-mock.ts              # Ollama API Mock
+│   ├── react-setup.ts              # React test environment setup
+│   ├── electron-setup.ts           # Electron test environment setup
+│   └── ollama-mock.ts              # Ollama API mock
 │
 ├── unit/
 │   ├── main/
@@ -176,39 +176,39 @@ tests/
 │
 ├── integration/
 │   ├── ipc/
-│   │   ├── browser-ipc.test.ts      # 浏览器 IPC 集成
-│   │   ├── ai-ipc.test.ts           # AI IPC 集成
-│   │   └── agent-ipc.test.ts        # Agent IPC 集成
+│   │   ├── browser-ipc.test.ts      # Browser IPC integration
+│   │   ├── ai-ipc.test.ts           # AI IPC integration
+│   │   └── agent-ipc.test.ts        # Agent IPC integration
 │   ├── ollama/
-│   │   ├── connection.test.ts       # Ollama 连接与重连
-│   │   ├── streaming.test.ts        # 流式响应端到端
-│   │   └── model-management.test.ts # 模型管理
+│   │   ├── connection.test.ts       # Ollama connection and reconnect
+│   │   ├── streaming.test.ts        # Streaming responses end-to-end
+│   │   └── model-management.test.ts # Model management
 │   └── database/
-│       ├── migrations.test.ts       # 数据库迁移
-│       └── crud.test.ts             # 数据 CRUD 操作
+│       ├── migrations.test.ts       # Database migrations
+│       └── crud.test.ts             # Data CRUD operations
 │
 ├── e2e/
 │   ├── browser/
-│   │   ├── tab-management.spec.ts   # 标签管理 E2E
-│   │   ├── navigation.spec.ts       # 导航 E2E
-│   │   ├── bookmarks.spec.ts        # 书签 E2E
-│   │   └── downloads.spec.ts        # 下载 E2E
+│   │   ├── tab-management.spec.ts   # Tab management E2E
+│   │   ├── navigation.spec.ts       # Navigation E2E
+│   │   ├── bookmarks.spec.ts        # Bookmarks E2E
+│   │   └── downloads.spec.ts        # Downloads E2E
 │   ├── ai/
-│   │   ├── chat.spec.ts             # AI 对话 E2E
-│   │   ├── summary.spec.ts          # 摘要 E2E
-│   │   └── translate.spec.ts        # 翻译 E2E
+│   │   ├── chat.spec.ts             # AI chat E2E
+│   │   ├── summary.spec.ts          # Summarization E2E
+│   │   └── translate.spec.ts        # Translation E2E
 │   ├── agent/
-│   │   └── automation.spec.ts       # 自动化操作 E2E
+│   │   └── automation.spec.ts       # Automation operations E2E
 │   └── privacy/
-│       └── privacy-mode.spec.ts     # 隐私模式 E2E
+│       └── privacy-mode.spec.ts     # Privacy mode E2E
 │
 └── fixtures/
-    ├── mock-pages/                   # 测试用 HTML 页面
+    ├── mock-pages/                   # HTML pages for testing
     │   ├── simple.html
     │   ├── long-article.html
     │   ├── form.html
     │   └── multi-lang.html
-    ├── mock-responses/               # Ollama Mock 响应
+    ├── mock-responses/               # Ollama mock responses
     │   ├── chat-stream.ndjson
     │   ├── summary-response.ndjson
     │   └── models-list.json
@@ -219,11 +219,11 @@ tests/
 
 ---
 
-## 3. 测试覆盖要求
+## 3. Coverage Requirements
 
-### 3.1 核心模块覆盖标准
+### 3.1 Core Module Coverage Standards
 
-| 模块 | 语句覆盖 | 分支覆盖 | 优先级 |
+| Module | Statement Coverage | Branch Coverage | Priority |
 |------|----------|----------|--------|
 | `services/ai/ollama-client` | ≥ 90% | ≥ 85% | P0 |
 | `services/ai/prompt-builder` | ≥ 90% | ≥ 90% | P0 |
@@ -233,24 +233,24 @@ tests/
 | `services/agent/executor` | ≥ 85% | ≥ 80% | P1 |
 | `services/agent/tools/*` | ≥ 85% | ≥ 80% | P1 |
 | `services/privacy/*` | ≥ 80% | ≥ 75% | P1 |
-| `store/*` (数据库) | ≥ 85% | ≥ 80% | P0 |
+| `store/*` (database) | ≥ 85% | ≥ 80% | P0 |
 | `ipc/*` | ≥ 70% | ≥ 65% | P0 |
 
-### 3.2 不要求覆盖的部分
+### 3.2 Excluded from Coverage
 
-- 类型定义文件 (`*.d.ts`)
-- 测试文件本身
-- 配置文件
-- UI 样式文件
-- 第三方库封装的薄层
+- Type definition files (`*.d.ts`)
+- Test files themselves
+- Configuration files
+- UI style files
+- Thin wrappers around third-party libraries
 
 ---
 
-## 4. 关键测试场景
+## 4. Key Test Scenarios
 
-### 4.1 浏览器核心功能测试
+### 4.1 Browser Core Feature Tests
 
-#### 4.1.1 标签管理 (TabManager)
+#### 4.1.1 Tab Management (TabManager)
 
 ```typescript
 // tests/unit/main/services/browser/tab-manager.test.ts
@@ -269,7 +269,7 @@ describe('TabManager', () => {
 });
 ```
 
-#### 4.1.2 书签服务 (BookmarkService)
+#### 4.1.2 Bookmark Service (BookmarkService)
 
 ```typescript
 describe('BookmarkService', () => {
@@ -285,7 +285,7 @@ describe('BookmarkService', () => {
 });
 ```
 
-#### 4.1.3 历史记录服务 (HistoryService)
+#### 4.1.3 History Service (HistoryService)
 
 ```typescript
 describe('HistoryService', () => {
@@ -299,7 +299,7 @@ describe('HistoryService', () => {
 });
 ```
 
-#### 4.1.4 下载管理 (DownloadService)
+#### 4.1.4 Download Management (DownloadService)
 
 ```typescript
 describe('DownloadService', () => {
@@ -314,9 +314,9 @@ describe('DownloadService', () => {
 
 ---
 
-### 4.2 AI 功能测试
+### 4.2 AI Feature Tests
 
-#### 4.2.1 Ollama 客户端 (Mock 模型响应)
+#### 4.2.1 Ollama Client (Mocked Model Responses)
 
 ```typescript
 // tests/unit/main/services/ai/ollama-client.test.ts
@@ -325,7 +325,7 @@ import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 
 const ollamaServer = setupServer(
-  // Mock /api/tags — 模型列表
+  // Mock /api/tags — model list
   http.get('http://localhost:11434/api/tags', () => {
     return HttpResponse.json({
       models: [
@@ -335,7 +335,7 @@ const ollamaServer = setupServer(
     });
   }),
 
-  // Mock /api/chat — 流式对话
+  // Mock /api/chat — streaming chat
   http.post('http://localhost:11434/api/chat', async () => {
     const chunks = [
       { response: 'Hello', done: false },
@@ -390,7 +390,7 @@ describe('OllamaClient', () => {
 });
 ```
 
-#### 4.2.2 Prompt 构建 (PromptBuilder)
+#### 4.2.2 Prompt Building (PromptBuilder)
 
 ```typescript
 describe('PromptBuilder', () => {
@@ -404,7 +404,7 @@ describe('PromptBuilder', () => {
 });
 ```
 
-#### 4.2.3 上下文提取 (ContextExtractor)
+#### 4.2.3 Context Extraction (ContextExtractor)
 
 ```typescript
 describe('ContextExtractor', () => {
@@ -419,7 +419,7 @@ describe('ContextExtractor', () => {
 });
 ```
 
-#### 4.2.4 流式响应处理 (StreamHandler)
+#### 4.2.4 Streaming Response Handling (StreamHandler)
 
 ```typescript
 describe('StreamHandler', () => {
@@ -434,7 +434,7 @@ describe('StreamHandler', () => {
 
 ---
 
-### 4.3 Ollama 集成测试
+### 4.3 Ollama Integration Tests
 
 ```typescript
 // tests/integration/ollama/connection.test.ts
@@ -468,9 +468,9 @@ describe('Model Management', () => {
 
 ---
 
-### 4.4 Agent 自动化测试
+### 4.4 Agent Automation Tests
 
-#### 4.4.1 规划器 (Planner)
+#### 4.4.1 Planner
 
 ```typescript
 describe('Planner', () => {
@@ -483,7 +483,7 @@ describe('Planner', () => {
 });
 ```
 
-#### 4.4.2 执行引擎 (Executor)
+#### 4.4.2 Execution Engine (Executor)
 
 ```typescript
 describe('Executor', () => {
@@ -525,55 +525,55 @@ describe('Extract Tool', () => {
 });
 ```
 
-#### 4.4.4 Agent 端到端场景
+#### 4.4.4 Agent End-to-End Scenarios
 
 ```typescript
 // tests/e2e/agent/automation.spec.ts
 
 describe('Agent Automation E2E', () => {
   it('should fill a login form via natural language command', async () => {
-    // 1. 打开测试登录页面
-    // 2. 输入指令 "用 username: test, password: 1234 填写登录表单"
-    // 3. 验证表单已填写
-    // 4. 用户确认后提交
+    // 1. Open the test login page
+    // 2. Enter the command "fill in the login form with username: test, password: 1234"
+    // 3. Verify the form has been filled
+    // 4. Submit after user confirmation
   });
 
   it('should search and extract search results', async () => {
-    // 1. 输入指令 "搜索 TypeScript 最佳实践并提取前5个结果的标题和链接"
-    // 2. Agent 导航到搜索引擎
-    // 3. Agent 提取结果
-    // 4. 验证提取的数据格式正确
+    // 1. Enter the command "search for TypeScript best practices and extract the titles and links of the top 5 results"
+    // 2. Agent navigates to a search engine
+    // 3. Agent extracts the results
+    // 4. Verify the extracted data is well-formed
   });
 
   it('should collect data across multiple pages', async () => {
-    // 1. 输入指令 "从以下三个页面提取产品价格"
-    // 2. Agent 逐页访问并提取
-    // 3. 验证汇总数据完整
+    // 1. Enter the command "extract product prices from the following three pages"
+    // 2. Agent visits each page and extracts data
+    // 3. Verify the aggregated data is complete
   });
 });
 ```
 
 ---
 
-### 4.5 性能测试基准
+### 4.5 Performance Test Benchmarks
 
-| 指标 | 测试方法 | 基准目标 | 警戒线 |
+| Metric | Test Method | Benchmark Target | Warning Threshold |
 |------|----------|----------|--------|
-| 冷启动时间 | E2E: 启动到首页渲染 | < 3s | > 5s |
-| 标签创建 | Perf: createTab() × 100 | < 50ms/个 | > 100ms |
-| 100 标签内存 | 启动 100 空白标签后的 RSS | < 500MB | > 800MB |
-| AI 首字延迟 | 集成: chat() 到第一个 chunk | < 500ms (本地) | > 2s |
-| 摘要生成 | 集成: 2000 字页面摘要完成 | < 10s (本地) | > 30s |
-| SQLite 写入 | Perf: INSERT × 1000 | < 100ms | > 500ms |
-| SQLite 查询 | Perf: 全文搜索 × 100 | < 50ms | > 200ms |
-| 侧边栏切换 | E2E: 点击到动画完成 | < 200ms | > 400ms |
-| 页面加载 | 对比 Chrome 加载同一页面 | 差异 < 10% | > 30% |
+| Cold start time | E2E: launch to homepage render | < 3s | > 5s |
+| Tab creation | Perf: createTab() × 100 | < 50ms per tab | > 100ms |
+| Memory with 100 tabs | RSS after launching 100 blank tabs | < 500MB | > 800MB |
+| AI first-token latency | Integration: chat() to first chunk | < 500ms (local) | > 2s |
+| Summary generation | Integration: summarize a 2000-character page | < 10s (local) | > 30s |
+| SQLite writes | Perf: INSERT × 1000 | < 100ms | > 500ms |
+| SQLite queries | Perf: full-text search × 100 | < 50ms | > 200ms |
+| Sidebar toggle | E2E: click to animation complete | < 200ms | > 400ms |
+| Page load | Compare against Chrome loading the same page | delta < 10% | > 30% |
 
-**性能测试工具**：
-- Electron 内置 `process.memoryUsage()` 监控内存
-- `performance.now()` 精确计时
-- Playwright trace 分析页面加载瀑布图
-- `clinic.js` 进行 Node.js 性能分析（按需）
+**Performance testing tools**:
+- Electron's built-in `process.memoryUsage()` for memory monitoring
+- `performance.now()` for precise timing
+- Playwright trace for analyzing page-load waterfalls
+- `clinic.js` for Node.js profiling (as needed)
 
 ```typescript
 // tests/unit/perf/tab-creation.perf.test.ts
@@ -596,14 +596,14 @@ describe('Tab Creation Performance', () => {
 
 ---
 
-### 4.6 安全测试
+### 4.6 Security Tests
 
-#### 4.6.1 进程隔离测试
+#### 4.6.1 Process Isolation Tests
 
 ```typescript
 describe('Process Isolation', () => {
   it('should not expose Node.js APIs in renderer process', async () => {
-    // 在渲染进程中验证以下全局变量不存在
+    // Verify that the following globals do not exist in the renderer process
     // - require
     // - process
     // - __dirname
@@ -613,16 +613,16 @@ describe('Process Isolation', () => {
   });
 
   it('should only expose whitelisted APIs via contextBridge', async () => {
-    // 验证 window.api 只包含预定义的方法
+    // Verify that window.api only contains the predefined methods
   });
 
   it('should validate all IPC channel names against whitelist', async () => {
-    // 确保主进程只响应已注册的 IPC 通道
+    // Ensure the main process only responds to registered IPC channels
   });
 });
 ```
 
-#### 4.6.2 IPC 安全测试
+#### 4.6.2 IPC Security Tests
 
 ```typescript
 describe('IPC Security', () => {
@@ -635,7 +635,7 @@ describe('IPC Security', () => {
 });
 ```
 
-#### 4.6.3 数据安全测试
+#### 4.6.3 Data Security Tests
 
 ```typescript
 describe('Data Security', () => {
@@ -647,7 +647,7 @@ describe('Data Security', () => {
 });
 ```
 
-#### 4.6.4 隐私模式测试
+#### 4.6.4 Privacy Mode Tests
 
 ```typescript
 describe('Privacy Mode', () => {
@@ -663,9 +663,9 @@ describe('Privacy Mode', () => {
 
 ---
 
-## 5. CI/CD 集成方案
+## 5. CI/CD Integration
 
-### 5.1 GitHub Actions 工作流
+### 5.1 GitHub Actions Workflow
 
 ```yaml
 # .github/workflows/test.yml
@@ -741,7 +741,7 @@ jobs:
       - run: npm run typecheck
 ```
 
-### 5.2 npm scripts 定义
+### 5.2 npm Scripts
 
 ```json
 {
@@ -760,7 +760,7 @@ jobs:
 }
 ```
 
-### 5.3 流水线阶段
+### 5.3 Pipeline Stages
 
 ```
 ┌─────────────┐     ┌──────────────────┐     ┌────────────┐     ┌──────────┐
@@ -775,25 +775,25 @@ jobs:
                                               └────────────┘
 ```
 
-- **Lint & TypeCheck**：每次推送，~30s
-- **Unit Tests + Coverage**：每次推送，~30s
-- **Integration Tests**：每次 PR，~60s
-- **E2E Tests**：每次 PR + 每日定时，~3min
-- **Build & Package**：main 分支合并后，~5min
+- **Lint & TypeCheck**: every push, ~30s
+- **Unit Tests + Coverage**: every push, ~30s
+- **Integration Tests**: every PR, ~60s
+- **E2E Tests**: every PR + daily schedule, ~3min
+- **Build & Package**: after merge to main, ~5min
 
-### 5.4 质量门禁
+### 5.4 Quality Gates
 
-PR 合并到 main 分支须满足：
+A PR may be merged into main only if:
 
-- [x] Lint 通过，零 error
-- [x] TypeScript 编译通过
-- [x] 单元测试全部通过
-- [x] 覆盖率不低于阈值（≥ 80% 语句）
-- [x] 集成测试全部通过
-- [x] E2E 关键路径测试通过
-- [x] 无性能基准回归（> 20% 变差需人工审核）
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles
+- [x] All unit tests pass
+- [x] Coverage meets thresholds (≥ 80% statements)
+- [x] All integration tests pass
+- [x] E2E critical-path tests pass
+- [x] No performance benchmark regression (degradation > 20% requires manual review)
 
-### 5.5 依赖安全
+### 5.5 Dependency Security
 
 ```yaml
 # .github/workflows/security.yml
@@ -801,7 +801,7 @@ PR 合并到 main 分支须满足：
 name: Security Audit
 on:
   schedule:
-    - cron: '0 2 * * 1'  # 每周一 2:00
+    - cron: '0 2 * * 1'  # Every Monday at 2:00
   push:
     paths: ['package-lock.json']
 
@@ -816,11 +816,11 @@ jobs:
 
 ---
 
-## 6. Mock 策略
+## 6. Mocking Strategy
 
 ### 6.1 Ollama API Mock
 
-使用 `msw` (Mock Service Worker) 模拟 Ollama REST API：
+Use `msw` (Mock Service Worker) to mock the Ollama REST API:
 
 ```typescript
 // tests/setup/ollama-mock.ts
@@ -828,7 +828,7 @@ jobs:
 import { http, HttpResponse, delay } from 'msw';
 
 export const ollamaHandlers = [
-  // 健康检查
+  // Health check
   http.get('http://localhost:11434/api/tags', async () => {
     return HttpResponse.json({
       models: [
@@ -838,19 +838,19 @@ export const ollamaHandlers = [
     });
   }),
 
-  // 流式对话
+  // Streaming chat
   http.post('http://localhost:11434/api/chat', async ({ request }) => {
     const body = await request.json();
     const lastMsg = body.messages[body.messages.length - 1].content.toLowerCase();
 
-    // 根据用户消息返回不同 Mock 响应
+    // Return different mock responses depending on the user message
     let response: string;
-    if (lastMsg.includes('摘要') || lastMsg.includes('summarize')) {
-      response = '本文主要讨论了人工智能在浏览器中的应用...';
-    } else if (lastMsg.includes('翻译') || lastMsg.includes('translate')) {
+    if (lastMsg.includes('summarize') || lastMsg.includes('summary')) {
+      response = 'This article mainly discusses the application of AI in browsers...';
+    } else if (lastMsg.includes('translate') || lastMsg.includes('translation')) {
       response = 'This article discusses the application of AI in browsers...';
     } else {
-      response = '这是一个 Mock AI 响应。';
+      response = 'This is a mock AI response.';
     }
 
     const chunks = response.split('').map((char, i, arr) => ({
@@ -861,7 +861,7 @@ export const ollamaHandlers = [
     const stream = new ReadableStream({
       async start(controller) {
         for (const chunk of chunks) {
-          await delay(10); // 模拟流式延迟
+          await delay(10); // Simulate streaming latency
           controller.enqueue(
             new TextEncoder().encode(JSON.stringify(chunk) + '\n')
           );
@@ -875,7 +875,7 @@ export const ollamaHandlers = [
     });
   }),
 
-  // 模型拉取（模拟进度）
+  // Model pull (simulated progress)
   http.post('http://localhost:11434/api/pull', async () => {
     const statuses = [
       { status: 'pulling manifest' },
@@ -905,7 +905,7 @@ export const ollamaHandlers = [
 
 ### 6.2 Electron API Mock
 
-在单元测试中 Mock Electron API：
+Mock the Electron API in unit tests:
 
 ```typescript
 // tests/setup/electron-mock.ts
@@ -947,9 +947,9 @@ vi.mock('electron', () => ({
 }));
 ```
 
-### 6.3 数据库 Mock
+### 6.3 Database Mock
 
-集成测试使用内存 SQLite：
+Integration tests use in-memory SQLite:
 
 ```typescript
 // tests/setup/db-setup.ts
@@ -958,7 +958,7 @@ import Database from 'better-sqlite3';
 
 export function createTestDB(): Database.Database {
   const db = new Database(':memory:');
-  // 执行迁移
+  // Run migrations
   db.exec(`
     CREATE TABLE bookmarks (...);
     CREATE TABLE history (...);
@@ -972,39 +972,39 @@ export function createTestDB(): Database.Database {
 
 ---
 
-## 7. 测试执行命令速查
+## 7. Test Command Quick Reference
 
-| 命令 | 用途 |
+| Command | Purpose |
 |------|------|
-| `npm test` | 运行单元 + 集成测试 |
-| `npm run test:unit` | 仅运行单元测试 |
-| `npm run test:unit:watch` | 监听模式运行单元测试 |
-| `npm run test:unit:coverage` | 单元测试 + 覆盖率报告 |
-| `npm run test:integration` | 运行集成测试 |
-| `npm run test:e2e` | 运行 E2E 测试 |
-| `npm run test:e2e:ui` | Playwright UI 模式运行 E2E |
-| `npm run test:perf` | 运行性能基准测试 |
-| `npm run lint` | ESLint 检查 |
-| `npm run typecheck` | TypeScript 类型检查 |
+| `npm test` | Run unit + integration tests |
+| `npm run test:unit` | Run unit tests only |
+| `npm run test:unit:watch` | Run unit tests in watch mode |
+| `npm run test:unit:coverage` | Unit tests + coverage report |
+| `npm run test:integration` | Run integration tests |
+| `npm run test:e2e` | Run E2E tests |
+| `npm run test:e2e:ui` | Run E2E tests in Playwright UI mode |
+| `npm run test:perf` | Run performance benchmarks |
+| `npm run lint` | ESLint check |
+| `npm run typecheck` | TypeScript type check |
 
 ---
 
-## 8. 测试现状（2026-09-15 核对）
+## 8. Test Status (verified 2026-09-15)
 
-| 套件 | 命令 | 现状 |
+| Suite | Command | Status |
 |------|------|------|
-| 单元 | `npm run test:unit` | ✅ 63 通过 / 7 文件（覆盖 prompt-builder、tab-manager、tool-registry、ipc-channels、ai-smart-tab-name、capability-crawl store、web-crawler 16 例） |
-| 集成 | `npm run test:integration` | ✅ 45 通过 / 3 文件（capability-crawl、capability-md-export、html-to-markdown） |
-| E2E | `npm run test:e2e` | 19 个 spec；需先 `npm run build` 且本机运行 Ollama（AI 系列真实调用） |
-| 类型 | `npm run typecheck` | ✅ 双 tsconfig 真实检查（旧脚本为空操作，已修复） |
-| Lint | `npm run lint` | ✅ ESLint 9 flat config，0 错误（此前 eslint 未安装，已补装） |
+| Unit | `npm run test:unit` | ✅ 63 passing / 7 files (covering prompt-builder, tab-manager, tool-registry, ipc-channels, ai-smart-tab-name, capability-crawl store, and web-crawler with 16 cases) |
+| Integration | `npm run test:integration` | ✅ 45 passing / 3 files (capability-crawl, capability-md-export, html-to-markdown) |
+| E2E | `npm run test:e2e` | 19 specs; requires `npm run build` first and a locally running Ollama (AI suites make real calls) |
+| Types | `npm run typecheck` | ✅ Real checks against both tsconfigs (the old script was a no-op; fixed) |
+| Lint | `npm run lint` | ✅ ESLint 9 flat config, 0 errors (eslint was previously not installed; now added) |
 
-已删除的测试：`stream-handler.test.ts`（随死代码 StreamHandler 一并移除）。
-覆盖率配置仍仅统计 `src/main/services` 与 `src/shared`；渲染进程组件暂无单测（与 §3.2 的豁免一致）。
+Removed test: `stream-handler.test.ts` (removed along with the dead StreamHandler code).
+The coverage config still only counts `src/main/services` and `src/shared`; renderer components have no unit tests yet (consistent with the §3.2 exemptions).
 
-### 8.1 2026-09-15 第二次清理
+### 8.1 2026-09-15 Second Cleanup
 
-- 移除无调用方的依赖：`@faker-js/faker`、`msw`、`@testing-library/react`、`@testing-library/jest-dom`（§2.1 保留为规划选型注记）
-- 清理 16 个规划遗留的空目录（`tests/setup/`、`tests/fixtures/*/`、`tests/e2e/{ai,agent,browser,privacy}/` 等）
-- 安装 `electron-builder` 并修复 `postinstall`（此前脚本引用不存在的二进制；现在 `npm install` 后 better-sqlite3 会被正确重编译为 Electron ABI）
-- 移除无调用方的死 IPC 端点与 preload 方法（导航四件套、`tab:restore/reorder`、legacy `cloud:config:*`、`research:report`），详见 DESIGN.md §10.3
+- Removed dependencies with no callers: `@faker-js/faker`, `msw`, `@testing-library/react`, `@testing-library/jest-dom` (kept in §2.1 as planned-selection notes)
+- Cleaned up 16 empty directories left over from planning (`tests/setup/`, `tests/fixtures/*/`, `tests/e2e/{ai,agent,browser,privacy}/`, etc.)
+- Installed `electron-builder` and fixed `postinstall` (the script previously referenced a non-existent binary; after `npm install`, better-sqlite3 is now correctly rebuilt against the Electron ABI)
+- Removed dead IPC endpoints and preload methods with no callers (the four navigation endpoints, `tab:restore/reorder`, legacy `cloud:config:*`, `research:report`); see DESIGN.md §10.3

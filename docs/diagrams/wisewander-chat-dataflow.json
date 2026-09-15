@@ -2,8 +2,7 @@
   "schema_version": 1,
   "diagram_type": "dataflow",
   "meta": {
-    "title": "WiseWander AI 对话数据流",
-    "locale": "zh-CN",
+    "title": "WiseWander AI Chat Data Flow",
     "output": "wisewander-chat-dataflow.html",
     "viewBox": [
       1085,
@@ -13,7 +12,7 @@
     "views": [
       {
         "id": "main-stream",
-        "label": "主对话流",
+        "label": "Main chat path",
         "focus": [
           "chat-ui",
           "aistore",
@@ -22,51 +21,51 @@
           "router",
           "ollama"
         ],
-        "note": "从发送到本地模型流式回包的主路径。"
+        "note": "From send to local-model streaming reply."
       },
       {
         "id": "stop-path",
-        "label": "Stop 中止路径",
+        "label": "Stop abort path",
         "focus": [
           "stop",
           "ipc",
           "router"
         ],
-        "note": "AbortSignal 从 Stop 按钮贯穿到 HTTP 请求。"
+        "note": "AbortSignal from the Stop button down to the HTTP request."
       },
       {
         "id": "failover",
-        "label": "云端兜底",
+        "label": "Cloud fallback",
         "focus": [
           "router",
           "cloud"
         ],
-        "note": "本地不可用时的云 provider 兜底。"
+        "note": "Cloud provider fallback when local is unavailable."
       }
     ]
   },
   "stages": [
     {
-      "label": "发起 (Renderer)"
+      "label": "Initiate (Renderer)"
     },
     {
-      "label": "桥接"
+      "label": "Bridge"
     },
     {
-      "label": "编排 (Main)"
+      "label": "Orchestrate (Main)"
     },
     {
-      "label": "路由与回推"
+      "label": "Route"
     },
     {
-      "label": "推理"
+      "label": "Infer"
     }
   ],
   "nodes": [
     {
       "id": "chat-ui",
       "type": "frontend",
-      "label": "聊天面板",
+      "label": "Chat panels",
       "sublabel": "Chat / Assistant",
       "stage": 0,
       "row": 0
@@ -75,14 +74,14 @@
       "id": "aistore",
       "type": "frontend",
       "label": "ai-store",
-      "sublabel": "Zustand 会话状态",
+      "sublabel": "Zustand state",
       "stage": 0,
       "row": 2
     },
     {
       "id": "preload",
       "type": "security",
-      "label": "Preload 桥",
+      "label": "Preload bridge",
       "sublabel": "aiChatSend / aiChatStop",
       "stage": 1,
       "row": 2
@@ -91,7 +90,7 @@
       "id": "stop",
       "type": "security",
       "label": "AbortController",
-      "sublabel": "按 tabId 注册",
+      "sublabel": "registered per tabId",
       "stage": 2,
       "row": 0
     },
@@ -115,7 +114,7 @@
       "id": "router",
       "type": "backend",
       "label": "ModelRouter",
-      "sublabel": "优先级探测 · 故障转移",
+      "sublabel": "Priority · failover",
       "stage": 3,
       "row": 2
     },
@@ -130,7 +129,7 @@
     {
       "id": "cloud",
       "type": "cloud",
-      "label": "云端 LLM",
+      "label": "Cloud LLM",
       "sublabel": "SSE · OpenAI / Anthropic",
       "stage": 4,
       "row": 3
@@ -142,7 +141,7 @@
       "from": "chat-ui",
       "to": "aistore",
       "label": "sendMessage",
-      "classification": "页面上下文随 <system> 前缀注入",
+      "classification": "page context injected with <system> prefix",
       "labelAt": [
         100,
         230
@@ -167,7 +166,7 @@
       "id": "ipc-stop",
       "from": "ipc",
       "to": "stop",
-      "label": "注册 / 中止",
+      "label": "register / abort",
       "classification": "AI_CHAT_STOP",
       "variant": "security",
       "labelAt": [
@@ -179,15 +178,15 @@
       "id": "ipc-events",
       "from": "ipc",
       "to": "events",
-      "label": "逐 chunk 回推",
-      "classification": "流式事件"
+      "label": "chunk-by-chunk push",
+      "classification": "streaming events"
     },
     {
       "id": "ipc-router",
       "from": "ipc",
       "to": "router",
       "label": "chat + AbortSignal",
-      "classification": "逐请求路由",
+      "classification": "per-request routing",
       "variant": "emphasis",
       "route": "straight",
       "labelAt": [
@@ -199,15 +198,15 @@
       "id": "router-ollama",
       "from": "router",
       "to": "ollama",
-      "label": "首个在线 provider",
-      "classification": "本地优先",
+      "label": "first online provider",
+      "classification": "local first",
       "variant": "emphasis"
     },
     {
       "id": "router-cloud",
       "from": "router",
       "to": "cloud",
-      "label": "离线兜底",
+      "label": "offline fallback",
       "classification": "SSE",
       "variant": "dashed"
     }
@@ -215,26 +214,26 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "主路径",
+      "title": "Main path",
       "items": [
-        "发送 → invoke → ModelRouter → 本地模型，chunk 逐条回推",
-        "发送前注入页面上下文（<system> 前缀）"
+        "Send → invoke → ModelRouter → local model, chunks pushed one by one",
+        "extractPageContext runs before send, injected as a <system> prefix"
       ]
     },
     {
       "dot": "rose",
-      "title": "Stop 真中止",
+      "title": "Stop truly aborts",
       "items": [
-        "AI_CHAT_STOP 按 tabId 找到 controller 并 abort",
-        "fetch 级中止：HTTP 请求真正断开"
+        "AI_CHAT_STOP finds the controller by tabId and aborts it",
+        "fetch-level abort: the HTTP request actually disconnects"
       ]
     },
     {
       "dot": "emerald",
-      "title": "路由与兜底",
+      "title": "Routing & fallback",
       "items": [
-        "providers 按 priority 探测，首个在线者执行",
-        "隐私模式跳过云端；离线时 SSE 兜底"
+        "Providers probed in priority order; first online wins",
+        "Privacy mode skips cloud; SSE fallback when offline"
       ]
     }
   ]

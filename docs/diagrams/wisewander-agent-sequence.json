@@ -2,8 +2,7 @@
   "schema_version": 1,
   "diagram_type": "sequence",
   "meta": {
-    "title": "WiseWander Agent 任务执行时序",
-    "locale": "zh-CN",
+    "title": "WiseWander Agent Task Sequence",
     "output": "wisewander-agent-sequence.html",
     "viewBox": [
       1060,
@@ -13,34 +12,34 @@
     "views": [
       {
         "id": "plan-phase",
-        "label": "规划阶段",
+        "label": "Planning phase",
         "focus": [
           "panel",
           "ipc",
           "planner",
           "ollama"
         ],
-        "note": "自然语言任务被分解为 JSON 工具步骤。"
+        "note": "A natural-language task is decomposed into JSON tool steps."
       },
       {
         "id": "exec-phase",
-        "label": "执行与进度回推",
+        "label": "Execution & progress",
         "focus": [
           "ipc",
           "tools",
           "webview",
           "panel"
         ],
-        "note": "步骤经 executeJavaScript 驱动页面，进度按 tabId 回推。"
+        "note": "Steps drive the page via executeJavaScript; progress routes by tabId."
       },
       {
         "id": "cancel-path",
-        "label": "取消路径",
+        "label": "Cancellation",
         "focus": [
           "panel",
           "ipc"
         ],
-        "note": "agent:cancel 触发 AbortController，剩余步骤被跳过。"
+        "note": "agent:cancel triggers an AbortController; remaining steps are skipped."
       }
     ]
   },
@@ -55,13 +54,13 @@
       "id": "ipc",
       "type": "backend",
       "label": "agent.ipc",
-      "sublabel": "handler + 取消"
+      "sublabel": "handler + cancel"
     },
     {
       "id": "planner",
       "type": "backend",
       "label": "Planner",
-      "sublabel": "工具清单提示词"
+      "sublabel": "tool prompt"
     },
     {
       "id": "ollama",
@@ -73,30 +72,30 @@
       "id": "tools",
       "type": "backend",
       "label": "Tools",
-      "sublabel": "7 个注册工具"
+      "sublabel": "7 registered tools"
     },
     {
       "id": "webview",
       "type": "frontend",
       "label": "<webview>",
-      "sublabel": "guest WebContents"
+      "sublabel": "guest WC"
     }
   ],
   "segments": [
     {
       "from": 145,
       "to": 300,
-      "label": "规划"
+      "label": "Plan"
     },
     {
       "from": 318,
       "to": 492,
-      "label": "逐步执行"
+      "label": "Step-by-step execution"
     },
     {
       "from": 496,
       "to": 568,
-      "label": "取消（可选）"
+      "label": "Cancel (optional)"
     }
   ],
   "messages": [
@@ -120,7 +119,7 @@
       "from": "planner",
       "to": "ollama",
       "y": 230,
-      "label": "stream:false JSON 规划",
+      "label": "stream:false JSON plan",
       "variant": "default"
     },
     {
@@ -128,7 +127,7 @@
       "from": "ollama",
       "to": "planner",
       "y": 258,
-      "label": "步骤 JSON 数组",
+      "label": "step JSON array",
       "variant": "return"
     },
     {
@@ -136,7 +135,7 @@
       "from": "planner",
       "to": "ipc",
       "y": 286,
-      "label": "AgentStep[]（校验工具名）",
+      "label": "AgentStep[] (tools validated)",
       "variant": "return"
     },
     {
@@ -167,7 +166,7 @@
       "from": "webview",
       "to": "tools",
       "y": 416,
-      "label": "页面返回值",
+      "label": "page result",
       "variant": "return"
     },
     {
@@ -199,7 +198,7 @@
       "from": "ipc",
       "to": "panel",
       "y": 538,
-      "label": "剩余步骤跳过 · status=failed",
+      "label": "remaining steps skipped · status=failed",
       "variant": "return"
     }
   ],
@@ -244,26 +243,26 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "一次性规划",
+      "title": "One-shot planning",
       "items": [
-        "产出步骤数组而非 ReAct 循环",
-        "<previous_result> 传递上一步输出"
+        "Emits a step array up front, no ReAct loop",
+        "<previous_result> passes prior output forward"
       ]
     },
     {
       "dot": "emerald",
-      "title": "页面驱动",
+      "title": "Page driving",
       "items": [
-        "executeJavaScript 注入 guest 执行",
-        "进度事件携带 tabId，切标签不串会话"
+        "executeJavaScript injects into the guest",
+        "Progress events carry tabId end to end"
       ]
     },
     {
       "dot": "rose",
-      "title": "真取消",
+      "title": "Real cancellation",
       "items": [
-        "agent:cancel(taskId) 触发中止",
-        "循环在步骤间检查信号并跳过"
+        "agent:cancel fires the AbortController",
+        "Loop checks the signal, skips the rest"
       ]
     }
   ]

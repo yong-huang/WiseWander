@@ -2,8 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "WiseWander 系统架构",
-    "locale": "zh-CN",
+    "title": "WiseWander System Architecture",
     "output": "wisewander-architecture.html",
     "quality_profile": "showcase",
     "viewBox": [
@@ -13,7 +12,7 @@
     "views": [
       {
         "id": "chat-path",
-        "label": "AI 对话主路径",
+        "label": "AI chat main path",
         "focus": [
           "renderer",
           "preload",
@@ -21,21 +20,21 @@
           "ai",
           "ollama"
         ],
-        "note": "从侧栏发问到本地模型流式回包的完整链路。"
+        "note": "From sidebar question to local-model streaming reply."
       },
       {
         "id": "agent-path",
-        "label": "Agent 自动化路径",
+        "label": "Agent automation path",
         "focus": [
           "ipc",
           "agent",
           "webview"
         ],
-        "note": "规划器生成步骤后经 executeJavaScript 直接驱动页面。"
+        "note": "The planner emits steps, then drives the page via executeJavaScript."
       },
       {
         "id": "storage",
-        "label": "持久化与隐私",
+        "label": "Persistence & privacy",
         "focus": [
           "datasvc",
           "research",
@@ -43,7 +42,7 @@
           "estore",
           "privacy"
         ],
-        "note": "浏览器数据、研究推荐与隐私过滤的落点。"
+        "note": "Where browsing data, research/recommendations, and privacy filtering live."
       }
     ]
   },
@@ -51,8 +50,7 @@
     {
       "id": "webview",
       "type": "frontend",
-      "label": "页面 <webview>",
-      "sublabel": "persist:wisewander 会话",
+      "label": "Page <webview>",
       "pos": [
         80,
         60
@@ -66,7 +64,6 @@
       "id": "renderer",
       "type": "frontend",
       "label": "Renderer UI",
-      "sublabel": "React 19 · Zustand · 7 stores",
       "pos": [
         80,
         210
@@ -79,8 +76,7 @@
     {
       "id": "preload",
       "type": "security",
-      "label": "Preload 桥",
-      "sublabel": "window.api (contextBridge)",
+      "label": "Preload bridge",
       "pos": [
         350,
         210
@@ -93,8 +89,7 @@
     {
       "id": "ipc",
       "type": "backend",
-      "label": "IPC Handlers",
-      "sublabel": "9 个域文件 · 约 90 通道",
+      "label": "IPC handlers",
       "pos": [
         600,
         210
@@ -107,8 +102,7 @@
     {
       "id": "ai",
       "type": "backend",
-      "label": "AI 层 · ModelRouter",
-      "sublabel": "优先级探测 · 逐请求故障转移",
+      "label": "AI layer · ModelRouter",
       "pos": [
         830,
         180
@@ -121,8 +115,7 @@
     {
       "id": "agent",
       "type": "backend",
-      "label": "Agent 引擎",
-      "sublabel": "Planner + 7 个工具",
+      "label": "Agent engine",
       "pos": [
         830,
         60
@@ -135,8 +128,7 @@
     {
       "id": "caps",
       "type": "backend",
-      "label": "AI 能力集",
-      "sublabel": "爬虫 · 截图 · 监控 · 审计",
+      "label": "AI capability suite",
       "pos": [
         830,
         300
@@ -149,8 +141,7 @@
     {
       "id": "datasvc",
       "type": "backend",
-      "label": "浏览器服务",
-      "sublabel": "标签 · 历史 · 书签 · 下载",
+      "label": "Browser services",
       "pos": [
         600,
         330
@@ -164,7 +155,6 @@
       "id": "estore",
       "type": "database",
       "label": "electron-store",
-      "sublabel": "config.json · providers 键",
       "pos": [
         600,
         470
@@ -177,8 +167,7 @@
     {
       "id": "research",
       "type": "backend",
-      "label": "研究 · 推荐 · 阅读",
-      "sublabel": "兴趣画像 · 24h 缓存",
+      "label": "Research · Recs · Reading",
       "pos": [
         830,
         470
@@ -191,8 +180,7 @@
     {
       "id": "privacy",
       "type": "security",
-      "label": "隐私过滤",
-      "sublabel": "ContentFilter · 指纹防护",
+      "label": "Privacy filter",
       "pos": [
         600,
         610
@@ -206,7 +194,6 @@
       "id": "sqlite",
       "type": "database",
       "label": "SQLite data.db",
-      "sublabel": "better-sqlite3 · WAL · 11 表",
       "pos": [
         1100,
         300
@@ -220,7 +207,6 @@
       "id": "ollama",
       "type": "external",
       "label": "Ollama",
-      "sublabel": "localhost:11434",
       "pos": [
         1100,
         60
@@ -233,8 +219,7 @@
     {
       "id": "cloud",
       "type": "cloud",
-      "label": "云端 LLM",
-      "sublabel": "OpenAI / Anthropic / 兼容端点",
+      "label": "Cloud LLMs",
       "pos": [
         1100,
         180
@@ -248,7 +233,7 @@
   "boundaries": [
     {
       "kind": "region",
-      "label": "Renderer 进程",
+      "label": "Renderer process",
       "wraps": [
         "webview",
         "renderer",
@@ -257,7 +242,7 @@
     },
     {
       "kind": "region",
-      "label": "Main 进程",
+      "label": "Main process",
       "wraps": [
         "ipc",
         "ai",
@@ -272,7 +257,7 @@
     },
     {
       "kind": "region",
-      "label": "外部 AI 服务",
+      "label": "External AI services",
       "wraps": [
         "ollama",
         "cloud"
@@ -295,13 +280,13 @@
       "id": "preload-ipc",
       "from": "preload",
       "to": "ipc",
-      "label": "IPC_CHANNELS 通道"
+      "label": "IPC_CHANNELS"
     },
     {
       "id": "ipc-stream",
       "from": "ipc",
       "to": "renderer",
-      "label": "流式事件回推",
+      "label": "Streaming events",
       "fromSide": "left",
       "toSide": "bottom",
       "via": [
@@ -345,7 +330,7 @@
       "id": "ipc-agent",
       "from": "ipc",
       "to": "agent",
-      "label": "执行 / 取消",
+      "label": "run / cancel",
       "fromSide": "right",
       "toSide": "left",
       "via": [
@@ -371,9 +356,13 @@
       "id": "ipc-caps",
       "from": "ipc",
       "to": "caps",
-      "label": "能力调用",
+      "label": "Capability calls",
       "fromSide": "right",
-      "toSide": "left"
+      "toSide": "left",
+      "labelAt": [
+        795,
+        292
+      ]
     },
     {
       "id": "ipc-datasvc",
@@ -403,14 +392,14 @@
       "id": "ai-ollama",
       "from": "ai",
       "to": "ollama",
-      "label": "NDJSON 流",
+      "label": "NDJSON stream",
       "variant": "emphasis"
     },
     {
       "id": "ai-cloud",
       "from": "ai",
       "to": "cloud",
-      "label": "SSE 兜底",
+      "label": "SSE fallback",
       "variant": "dashed",
       "fromSide": "right",
       "toSide": "left",
@@ -423,7 +412,7 @@
       "id": "agent-webview",
       "from": "agent",
       "to": "webview",
-      "label": "executeJavaScript 驱动页面",
+      "label": "executeJavaScript drives page",
       "variant": "dashed",
       "fromSide": "top",
       "toSide": "top",
@@ -442,7 +431,7 @@
       "id": "privacy-webview",
       "from": "privacy",
       "to": "webview",
-      "label": "webRequest 拦截 · 指纹注入",
+      "label": "webRequest block · fingerprint inject",
       "variant": "security",
       "fromSide": "bottom",
       "toSide": "left",
@@ -491,7 +480,7 @@
       "id": "research-db",
       "from": "research",
       "to": "sqlite",
-      "label": "画像 · 缓存 · 笔记",
+      "label": "Profiles · cache · notes",
       "fromSide": "right",
       "toSide": "right",
       "via": [
@@ -521,7 +510,7 @@
       "id": "caps-db",
       "from": "caps",
       "to": "sqlite",
-      "label": "监控记录",
+      "label": "Monitor records",
       "fromSide": "bottom",
       "toSide": "bottom",
       "via": [
@@ -547,26 +536,26 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "进程模型",
+      "title": "Process model",
       "items": [
-        "页面由 Renderer 内 <webview> 承载，主进程 TabManager 仅存元数据",
-        "全部跨进程通信走 IPC_CHANNELS 常量，流式经 webContents.send 推送"
+        "Pages live in renderer-side <webview> tags; the main-process TabManager keeps metadata only",
+        "All cross-process traffic uses IPC_CHANNELS constants; streaming goes through webContents.send"
       ]
     },
     {
       "dot": "emerald",
-      "title": "AI 路由",
+      "title": "AI routing",
       "items": [
-        "providers 按优先级探测，首个在线者执行本次请求（30s 状态缓存）",
-        "隐私模式强制仅本地；Stop 按钮经 AbortSignal 真正中止 HTTP 流"
+        "Providers are probed in priority order; the first online one serves each request (30s status cache)",
+        "Privacy mode forces local-only; Stop truly aborts the HTTP stream via AbortSignal"
       ]
     },
     {
       "dot": "rose",
-      "title": "持久化",
+      "title": "Persistence",
       "items": [
-        "SQLite（WAL）承载书签/历史/阅读/监控/研究 11 张表",
-        "electron-store 保存 providers 优先级与外观/隐私设置，will-download 落库下载记录"
+        "SQLite (WAL) holds 11 tables: bookmarks/history/reading/monitor/research",
+        "electron-store keeps provider priority and appearance/privacy settings; will-download persists download records"
       ]
     }
   ]

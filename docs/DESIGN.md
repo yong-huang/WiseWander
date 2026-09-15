@@ -1,62 +1,62 @@
-# WiseWander — 技术设计文档
+# WiseWander — Technical Design Document
 
-> 版本: 1.1.0
-> 更新日期: 2026-09-15
-> 状态: Active（与代码同步修订）
+> Version: 1.1.0
+> Last updated: 2026-09-15
+> Status: Active (revised in sync with the code)
 
-> **架构图（archify 生成，交互式，浏览器打开）**
+> **Architecture diagrams (generated with archify, interactive, open in a browser)**
 >
-> | 图 | 说明 |
+> | Diagram | Description |
 > |----|------|
-> | [系统架构](diagrams/wisewander-architecture.html) | 三进程模型、IPC 通道、服务与存储落点 |
-> | [AI 对话数据流](diagrams/wisewander-chat-dataflow.html) | 从发送到流式渲染的主路径 + Stop 真中止路径 |
-> | [Agent 执行时序](diagrams/wisewander-agent-sequence.html) | 规划 → 逐步执行 → 进度回推 → 取消 |
+> | [System Architecture](diagrams/wisewander-architecture.html) | Three-process model, IPC channels, services, and storage locations |
+> | [AI Chat Data Flow](diagrams/wisewander-chat-dataflow.html) | Main path from send to streaming render + the true-abort Stop path |
+> | [Agent Execution Sequence](diagrams/wisewander-agent-sequence.html) | Plan → step-by-step execution → progress push → cancel |
 >
-> 静态预览（1440×900）：`docs/diagrams/*.visual-check.*.png`
+> Static previews (1440×900): `docs/diagrams/*.visual-check.*.png`
 
 ---
 
-## 1. 技术栈
+## 1. Tech Stack
 
-| 层级 | 技术 | 版本 | 用途 |
+| Layer | Technology | Version | Purpose |
 |------|------|------|------|
-| 框架 | Electron | 33+ | 桌面应用壳 |
-| 渲染引擎 | Chromium | (随 Electron) | 网页渲染 |
-| 前端框架 | React | 19+ | UI 组件 |
-| 语言 | TypeScript | 5.7+ | 类型安全 |
-| 构建工具 | Vite + electron-vite | 最新 | 开发与打包 |
-| 状态管理 | Zustand | 5+ | 轻量状态管理 |
-| 样式 | Tailwind CSS | 4+ | 原子化 CSS |
-| AI 运行时 | Ollama | 最新 | 本地 LLM 推理 |
-| 数据存储 | better-sqlite3 | 最新 | 结构化数据 |
-| 键值存储 | electron-store | 最新 | 配置与偏好 |
-| 测试 | Vitest + Playwright | 最新 | 测试框架 |
+| Framework | Electron | 33+ | Desktop app shell |
+| Rendering engine | Chromium | (bundled with Electron) | Web page rendering |
+| Frontend framework | React | 19+ | UI components |
+| Language | TypeScript | 5.7+ | Type safety |
+| Build tooling | Vite + electron-vite | Latest | Development and packaging |
+| State management | Zustand | 5+ | Lightweight state management |
+| Styling | Tailwind CSS | 4+ | Utility-first CSS |
+| AI runtime | Ollama | Latest | Local LLM inference |
+| Data storage | better-sqlite3 | Latest | Structured data |
+| Key-value storage | electron-store | Latest | Configuration and preferences |
+| Testing | Vitest + Playwright | Latest | Testing frameworks |
 
 ---
 
-## 2. 系统架构
+## 2. System Architecture
 
-### 2.1 架构总览
+### 2.1 Architecture Overview
 
-![WiseWander 系统架构](diagrams/wisewander-architecture.visual-check.1440x900.light.png)
+![WiseWander system architecture](diagrams/wisewander-architecture.visual-check.1440x900.light.png)
 
-> 交互版：[wisewander-architecture.html](diagrams/wisewander-architecture.html)（支持主题切换、关系追踪、按视图聚焦）
+> Interactive version: [wisewander-architecture.html](diagrams/wisewander-architecture.html) (supports theme switching, relation tracing, and per-view focus)
 
-要点：
+Key points:
 
-- **页面容器是 Renderer 内的 `<webview>` 标签**（`webviewTag: true`，`partition="persist:wisewander"`）；主进程 `TabManager` 仅维护元数据与已关闭标签栈
-- 全部跨进程通信走 `shared/ipc-channels.ts` 的通道常量；流式数据（聊天、Agent 步骤、爬虫/截图进度、下载进度）经 `webContents.send` 推送
-- AI 层的 `ModelRouter` 按 `providers` 优先级逐请求探测，首个在线者执行；隐私模式强制仅本地
+- **The page container is a `<webview>` tag inside the Renderer** (`webviewTag: true`, `partition="persist:wisewander"`); the main-process `TabManager` only maintains metadata and a stack of closed tabs
+- All cross-process communication goes through the channel constants in `shared/ipc-channels.ts`; streaming data (chat, agent steps, crawler/screenshot progress, download progress) is pushed via `webContents.send`
+- The AI layer's `ModelRouter` probes providers per request in `providers` priority order and the first one online serves the request; privacy mode enforces local-only
 
-### 2.2 进程模型
+### 2.2 Process Model
 
-Electron 采用多进程架构：
+Electron uses a multi-process architecture:
 
-- **Main Process**：唯一的 Node.js 进程（ESM），负责窗口管理、原生 API、AI 路由、Agent 执行、SQLite 与内容过滤；页面密集型操作经 `executeJavaScript` 下放到 webview guest
-- **Renderer Process**：Chromium 渲染进程，运行 React UI；页面通过 `<webview>` 标签承载（非 WebContentsView），导航/前进/后退由 renderer 直接调 webview 方法
-- **Preload Scripts**：安全桥接层，通过 `contextBridge` 暴露 `window.api`（约 90 个通道的 typed 包装 + 流式订阅）
+- **Main Process**: the single Node.js process (ESM), responsible for window management, native APIs, AI routing, agent execution, SQLite, and content filtering; page-intensive operations are delegated to the webview guest via `executeJavaScript`
+- **Renderer Process**: the Chromium renderer process running the React UI; pages are hosted via `<webview>` tags (not WebContentsView), and navigation/back/forward is invoked by the renderer directly on webview methods
+- **Preload Scripts**: the secure bridge layer exposing `window.api` via `contextBridge` (typed wrappers for ~90 channels + streaming subscriptions)
 
-### 2.3 安全边界
+### 2.3 Security Boundary
 
 ```
 Renderer Process          Preload              Main Process
@@ -72,18 +72,18 @@ Renderer Process          Preload              Main Process
      │◄─────────────────────┤                      │
 ```
 
-关键原则：
-- 渲染进程**永远不**直接访问 Node.js API
-- 所有跨进程调用通过 Preload 的 `contextBridge` 暴露的 API
-- IPC 通道使用白名单验证
+Key principles:
+- The renderer **never** accesses Node.js APIs directly
+- All cross-process calls go through the API exposed by the Preload's `contextBridge`
+- IPC channels are validated against a whitelist
 
 ---
 
-## 3. 目录结构
+## 3. Directory Structure
 
 ```
 wisewander/
-├── electron.vite.config.ts         # 构建配置
+├── electron.vite.config.ts         # Build configuration
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -91,38 +91,38 @@ wisewander/
 │
 ├── src/
 │   ├── main/                       # Main Process
-│   │   ├── index.ts                # 入口：创建窗口、注册 IPC
-│   │   ├── ipc/                    # IPC Handler 注册
+│   │   ├── index.ts                # Entry point: creates the window, registers IPC
+│   │   ├── ipc/                    # IPC handler registration
 │   │   │   ├── index.ts
-│   │   │   ├── browser.ipc.ts      # 浏览器相关 IPC
-│   │   │   ├── ai.ipc.ts           # AI 相关 IPC
-│   │   │   ├── agent.ipc.ts        # Agent 相关 IPC
-│   │   │   ├── capability.ipc.ts   # 能力（爬虫/设计分析）IPC
-│   │   │   ├── research.ipc.ts     # 研究助手 IPC
-│   │   │   └── workspace.ipc.ts    # 工作区 IPC
+│   │   │   ├── browser.ipc.ts      # Browser-related IPC
+│   │   │   ├── ai.ipc.ts           # AI-related IPC
+│   │   │   ├── agent.ipc.ts        # Agent-related IPC
+│   │   │   ├── capability.ipc.ts   # Capability (crawler/design analysis) IPC
+│   │   │   ├── research.ipc.ts     # Research assistant IPC
+│   │   │   └── workspace.ipc.ts    # Workspace IPC
 │   │   │
-│   │   ├── services/               # 主进程服务
+│   │   ├── services/               # Main-process services
 │   │   │   ├── browser/
-│   │   │   │   ├── tab-manager.ts      # 标签生命周期管理
-│   │   │   │   ├── bookmark-service.ts # 书签 CRUD
-│   │   │   │   ├── history-service.ts  # 历史记录管理
-│   │   │   │   ├── download-service.ts # 下载管理
-│   │   │   │   └── workspace.ts        # 工作区管理
+│   │   │   │   ├── tab-manager.ts      # Tab lifecycle management
+│   │   │   │   ├── bookmark-service.ts # Bookmark CRUD
+│   │   │   │   ├── history-service.ts  # History management
+│   │   │   │   ├── download-service.ts # Download management
+│   │   │   │   └── workspace.ts        # Workspace management
 │   │   │   │
 │   │   │   ├── ai/
-│   │   │   │   ├── ollama-client.ts    # Ollama API 客户端
-│   │   │   │   ├── cloud-client.ts     # 云端 AI 客户端
-│   │   │   │   ├── router.ts           # AI 路由（本地/云端）
-│   │   │   │   ├── model-manager.ts    # 模型发现与选择
-│   │   │   │   ├── prompt-builder.ts   # Prompt 模板构建
-│   │   │   │   ├── stream-handler.ts   # 流式响应处理
-│   │   │   │   └── context-extractor.ts # 页面上下文提取
+│   │   │   │   ├── ollama-client.ts    # Ollama API client
+│   │   │   │   ├── cloud-client.ts     # Cloud AI client
+│   │   │   │   ├── router.ts           # AI routing (local/cloud)
+│   │   │   │   ├── model-manager.ts    # Model discovery and selection
+│   │   │   │   ├── prompt-builder.ts   # Prompt template builder
+│   │   │   │   ├── stream-handler.ts   # Streaming response handling
+│   │   │   │   └── context-extractor.ts # Page context extraction
 │   │   │   │
 │   │   │   ├── agent/
-│   │   │   │   ├── planner.ts          # 任务分解与规划
-│   │   │   │   ├── executor.ts         # 操作执行引擎
-│   │   │   │   ├── tool-registry.ts    # Agent Tool 注册表
-│   │   │   │   └── tools/              # 内置 Tool 定义
+│   │   │   │   ├── planner.ts          # Task decomposition and planning
+│   │   │   │   ├── executor.ts         # Action execution engine
+│   │   │   │   ├── tool-registry.ts    # Agent tool registry
+│   │   │   │   └── tools/              # Built-in tool definitions
 │   │   │   │       ├── index.ts
 │   │   │   │       ├── navigate.ts
 │   │   │   │       ├── click.ts
@@ -133,114 +133,114 @@ wisewander/
 │   │   │   │       └── ai-process.ts
 │   │   │   │
 │   │   │   ├── capability/
-│   │   │   │   ├── web-crawler.ts      # 网页爬虫
-│   │   │   │   └── design-analyzer.ts  # 设计风格分析
+│   │   │   │   ├── web-crawler.ts      # Web crawler
+│   │   │   │   └── design-analyzer.ts  # Design style analysis
 │   │   │   │
 │   │   │   ├── research/
-│   │   │   │   └── research-engine.ts  # 研究助手引擎
+│   │   │   │   └── research-engine.ts  # Research assistant engine
 │   │   │   │
 │   │   │   └── privacy/
-│   │   │       ├── content-filter.ts   # 广告/追踪器过滤
-│   │   │       ├── tracker-detector.ts # 追踪器检测
-│   │   │       └── fingerprint.ts      # 指纹保护
+│   │   │       ├── content-filter.ts   # Ad/tracker filtering
+│   │   │       ├── tracker-detector.ts # Tracker detection
+│   │   │       └── fingerprint.ts      # Fingerprint protection
 │   │   │
-│   │   └── store/                  # 数据存储层
-│   │       ├── database.ts             # SQLite 初始化与迁移
-│   │       └── config.ts               # electron-store 配置
+│   │   └── store/                  # Data storage layer
+│   │       ├── database.ts             # SQLite initialization and migrations
+│   │       └── config.ts               # electron-store configuration
 │   │
 │   ├── preload/                    # Preload Scripts
-│   │   └── index.ts                # 主窗口 preload + contextBridge
+│   │   └── index.ts                # Main-window preload + contextBridge
 │   │
 │   ├── renderer/                   # Renderer Process (React)
-│   │   ├── index.html              # HTML 入口
-│   │   ├── main.tsx                # React 入口
-│   │   ├── App.tsx                 # 根组件
+│   │   ├── index.html              # HTML entry
+│   │   ├── main.tsx                # React entry
+│   │   ├── App.tsx                 # Root component
 │   │   │
-│   │   ├── components/             # UI 组件
+│   │   ├── components/             # UI components
 │   │   │   ├── browser/
-│   │   │   │   ├── TabBar.tsx          # 标签栏
-│   │   │   │   ├── AddressBar.tsx      # 地址栏（含导航按钮）
-│   │   │   │   ├── BrowserView.tsx     # WebView 容器
-│   │   │   │   ├── BookmarkBar.tsx     # 书签栏
-│   │   │   │   └── DownloadBar.tsx     # 下载栏
+│   │   │   │   ├── TabBar.tsx          # Tab bar
+│   │   │   │   ├── AddressBar.tsx      # Address bar (with navigation buttons)
+│   │   │   │   ├── BrowserView.tsx     # WebView container
+│   │   │   │   ├── BookmarkBar.tsx     # Bookmark bar
+│   │   │   │   └── DownloadBar.tsx     # Download bar
 │   │   │   │
 │   │   │   ├── ai/
-│   │   │   │   ├── AISidebar.tsx       # AI 侧边栏容器
-│   │   │   │   ├── ChatPanel.tsx       # 对话面板
-│   │   │   │   ├── SummaryPanel.tsx    # 摘要面板
-│   │   │   │   ├── TranslatePanel.tsx  # 翻译面板
-│   │   │   │   ├── MessageBubble.tsx   # 消息气泡
-│   │   │   │   └── StreamingText.tsx   # 流式文本渲染
+│   │   │   │   ├── AISidebar.tsx       # AI sidebar container
+│   │   │   │   ├── ChatPanel.tsx       # Chat panel
+│   │   │   │   ├── SummaryPanel.tsx    # Summary panel
+│   │   │   │   ├── TranslatePanel.tsx  # Translate panel
+│   │   │   │   ├── MessageBubble.tsx   # Message bubble
+│   │   │   │   └── StreamingText.tsx   # Streaming text rendering
 │   │   │   │
 │   │   │   ├── agent/
-│   │   │   │   ├── AgentPanel.tsx      # Agent 控制面板
-│   │   │   │   ├── TaskList.tsx        # 任务列表
-│   │   │   │   └── ExecutionLog.tsx    # 执行日志
+│   │   │   │   ├── AgentPanel.tsx      # Agent control panel
+│   │   │   │   ├── TaskList.tsx        # Task list
+│   │   │   │   └── ExecutionLog.tsx    # Execution log
 │   │   │   │
 │   │   │   ├── capability/
-│   │   │   │   ├── CapabilityListPanel.tsx  # 能力列表面板
-│   │   │   │   ├── DesignAnalyzerPanel.tsx  # 设计分析面板
-│   │   │   │   ├── MarkdownExporterPanel.tsx # Markdown 导出
-│   │   │   │   ├── TemplatePreview.tsx      # 模板预览
-│   │   │   │   └── WebCrawlerPanel.tsx      # 爬虫面板
+│   │   │   │   ├── CapabilityListPanel.tsx  # Capability list panel
+│   │   │   │   ├── DesignAnalyzerPanel.tsx  # Design analysis panel
+│   │   │   │   ├── MarkdownExporterPanel.tsx # Markdown export
+│   │   │   │   ├── TemplatePreview.tsx      # Template preview
+│   │   │   │   └── WebCrawlerPanel.tsx      # Crawler panel
 │   │   │   │
 │   │   │   ├── research/
-│   │   │   │   ├── ResearchPanel.tsx   # 研究助手面板
-│   │   │   │   ├── ReportView.tsx      # 报告视图
-│   │   │   │   └── SourceList.tsx      # 来源列表
+│   │   │   │   ├── ResearchPanel.tsx   # Research assistant panel
+│   │   │   │   ├── ReportView.tsx      # Report view
+│   │   │   │   └── SourceList.tsx      # Source list
 │   │   │   │
 │   │   │   ├── settings/
-│   │   │   │   ├── SettingsPage.tsx    # 设置页面
-│   │   │   │   ├── ModelConfig.tsx     # 模型配置
-│   │   │   │   └── PrivacyConfig.tsx   # 隐私配置
+│   │   │   │   ├── SettingsPage.tsx    # Settings page
+│   │   │   │   ├── ModelConfig.tsx     # Model configuration
+│   │   │   │   └── PrivacyConfig.tsx   # Privacy configuration
 │   │   │   │
 │   │   │   ├── devtools/
-│   │   │   │   ├── DevToolsPanel.tsx   # 开发者工具面板
-│   │   │   │   ├── AIPanel.tsx         # AI 调试面板
-│   │   │   │   ├── ConsolePanel.tsx    # 控制台面板
-│   │   │   │   ├── ElementsPanel.tsx   # 元素面板
-│   │   │   │   ├── NetworkPanel.tsx    # 网络面板
-│   │   │   │   └── StoragePanel.tsx    # 存储面板
+│   │   │   │   ├── DevToolsPanel.tsx   # DevTools panel
+│   │   │   │   ├── AIPanel.tsx         # AI debug panel
+│   │   │   │   ├── ConsolePanel.tsx    # Console panel
+│   │   │   │   ├── ElementsPanel.tsx   # Elements panel
+│   │   │   │   ├── NetworkPanel.tsx    # Network panel
+│   │   │   │   └── StoragePanel.tsx    # Storage panel
 │   │   │   │
 │   │   │   └── common/
-│   │   │       ├── CommandPalette.tsx  # 命令面板 (Cmd+K)
+│   │   │       ├── CommandPalette.tsx  # Command palette (Cmd+K)
 │   │   │       ├── Tooltip.tsx
 │   │   │       └── Modal.tsx
 │   │   │
 │   │   ├── hooks/                  # React Hooks
-│   │   │   └── useTheme.ts             # 主题切换 Hook
+│   │   │   └── useTheme.ts             # Theme toggle hook
 │   │   │
-│   │   ├── services/               # 渲染进程服务
-│   │   │   ├── page-extractor.ts       # 页面内容提取
-│   │   │   ├── readability-extractor.ts # Readability 提取
+│   │   ├── services/               # Renderer services
+│   │   │   ├── page-extractor.ts       # Page content extraction
+│   │   │   ├── readability-extractor.ts # Readability extraction
 │   │   │   ├── html-to-markdown.ts     # HTML → Markdown
-│   │   │   └── design-style-extractor.ts # 设计风格提取
+│   │   │   └── design-style-extractor.ts # Design style extraction
 │   │   │
-│   │   ├── store/                  # Zustand 状态管理
-│   │   │   ├── tab-store.ts           # 标签状态
-│   │   │   ├── ai-store.ts            # AI 对话状态
-│   │   │   ├── agent-store.ts         # Agent 状态
-│   │   │   ├── capability-store.ts    # 能力状态
-│   │   │   ├── settings-store.ts      # 设置状态
-│   │   │   └── devtools-store.ts      # 开发者工具状态
+│   │   ├── store/                  # Zustand state management
+│   │   │   ├── tab-store.ts           # Tab state
+│   │   │   ├── ai-store.ts            # AI chat state
+│   │   │   ├── agent-store.ts         # Agent state
+│   │   │   ├── capability-store.ts    # Capability state
+│   │   │   ├── settings-store.ts      # Settings state
+│   │   │   └── devtools-store.ts      # DevTools state
 │   │   │
-│   │   ├── styles/                 # 全局样式
+│   │   ├── styles/                 # Global styles
 │   │   │   └── globals.css
 │   │   │
-│   │   └── types/                  # TypeScript 类型
+│   │   └── types/                  # TypeScript types
 │   │       └── window.d.ts
 │   │
-│   └── shared/                     # 进程间共享
-│       ├── types.ts                # 共享类型定义
-│       ├── constants.ts            # 共享常量
-│       └── ipc-channels.ts         # IPC 通道名称
+│   └── shared/                     # Shared across processes
+│       ├── types.ts                # Shared type definitions
+│       ├── constants.ts            # Shared constants
+│       └── ipc-channels.ts         # IPC channel names
 │
-├── docs/                           # 文档
+├── docs/                           # Documentation
 │   ├── PRD.md
 │   ├── DESIGN.md
 │   └── TEST.md
 │
-└── tests/                          # 测试
+└── tests/                          # Tests
     ├── unit/
     ├── integration/
     └── e2e/
@@ -248,11 +248,11 @@ wisewander/
 
 ---
 
-## 4. 核心模块设计
+## 4. Core Module Design
 
 ### 4.1 Browser Core
 
-#### 4.1.1 标签管理 (TabManager)
+#### 4.1.1 Tab Management (TabManager)
 
 ```typescript
 // src/main/services/browser/tab-manager.ts
@@ -281,12 +281,12 @@ class TabManager {
 }
 ```
 
-**实现要点**：
-- 每个 Tab 对应一个 `<webview>` 标签（渲染进程中）或 `BrowserView`（主进程中）
-- MVP 阶段使用 `<webview>` 标签，更简单可控
-- 标签状态通过 IPC 同步到渲染进程
+**Implementation notes**:
+- Each Tab corresponds to a `<webview>` tag (in the renderer) or a `BrowserView` (in the main process)
+- The MVP uses `<webview>` tags — simpler and easier to control
+- Tab state is synced to the renderer via IPC
 
-#### 4.1.2 导航控制 (Navigation)
+#### 4.1.2 Navigation Control (Navigation)
 
 ```typescript
 // src/main/services/browser/navigation.ts
@@ -300,7 +300,7 @@ class Navigation {
 }
 ```
 
-#### 4.1.3 页面上下文提取 (ContextExtractor)
+#### 4.1.3 Page Context Extraction (ContextExtractor)
 
 ```typescript
 // src/main/services/ai/context-extractor.ts
@@ -308,19 +308,19 @@ class Navigation {
 interface PageContext {
   url: string;
   title: string;
-  textContent: string;        // 主要文本内容（去噪后）
-  headings: Heading[];        // 标题结构
-  links: Link[];              // 链接列表
-  images: Image[];            // 图片（含 alt 文本）
-  tables: Table[];            // 表格数据
-  metadata: Record<string, string>;  // meta 标签信息
-  language: string;           // 页面语言
+  textContent: string;        // main text content (denoised)
+  headings: Heading[];        // heading structure
+  links: Link[];              // link list
+  images: Image[];            // images (with alt text)
+  tables: Table[];            // table data
+  metadata: Record<string, string>;  // meta tag info
+  language: string;           // page language
 }
 
 class ContextExtractor {
-  // 通过注入 JS 到 webview 提取页面内容
+  // Extract page content by injecting JS into the webview
   extractFromWebview(webContentsId: number): Promise<PageContext>;
-  // 截取页面截图用于多模态
+  // Capture a page screenshot for multimodal use
   captureScreenshot(webContentsId: number): Promise<Buffer>;
 }
 ```
@@ -329,15 +329,15 @@ class ContextExtractor {
 
 ### 4.2 AI Service Layer
 
-#### 4.2.1 Ollama 客户端
+#### 4.2.1 Ollama Client
 
 ```typescript
 // src/main/services/ai/ollama-client.ts
 
 interface OllamaConfig {
-  baseUrl: string;            // 默认 http://localhost:11434
-  defaultModel: string;       // 默认模型名
-  timeout: number;            // 请求超时 ms
+  baseUrl: string;            // default http://localhost:11434
+  defaultModel: string;       // default model name
+  timeout: number;            // request timeout in ms
 }
 
 interface ChatMessage {
@@ -352,19 +352,19 @@ interface StreamChunk {
 }
 
 class OllamaClient {
-  // 健康检查
+  // Health check
   async healthCheck(): Promise<{ status: 'ok' | 'error'; models: Model[] }>;
-  // 获取可用模型列表
+  // List available models
   async listModels(): Promise<Model[]>;
-  // 拉取模型
+  // Pull a model
   async pullModel(name: string, onProgress?: (p: number) => void): Promise<void>;
-  // 对话（流式）
+  // Chat (streaming)
   async chat(
     model: string,
     messages: ChatMessage[],
     onChunk: (chunk: StreamChunk) => void
   ): Promise<void>;
-  // 生成（单次，流式）
+  // Generate (one-shot, streaming)
   async generate(
     model: string,
     prompt: string,
@@ -374,12 +374,12 @@ class OllamaClient {
 }
 ```
 
-**Ollama API 对接**：
-- 使用 Ollama REST API (`/api/chat`, `/api/generate`, `/api/tags`)
-- 流式响应通过 NDJSON (Newline Delimited JSON) 逐行解析
-- 连接失败时自动重试（最多 3 次，指数退避）
+**Ollama API integration**:
+- Uses the Ollama REST API (`/api/chat`, `/api/generate`, `/api/tags`)
+- Streaming responses are parsed line by line as NDJSON (Newline Delimited JSON)
+- Automatic retry on connection failure (up to 3 times with exponential backoff)
 
-#### 4.2.2 Prompt 模板系统
+#### 4.2.2 Prompt Template System
 
 ```typescript
 // src/main/services/ai/prompt-builder.ts
@@ -391,34 +391,34 @@ interface PromptTemplate {
   user: (context: PageContext, userMessage: string) => string;
 }
 
-// 内置模板
+// Built-in templates
 const TEMPLATES: Record<string, PromptTemplate> = {
   chat: {
     id: 'chat',
-    name: '页面对话',
-    system: `你是一个智能助手。用户正在浏览一个网页，请基于页面内容回答问题。
-规则：
-- 回答基于页面内容，不要编造
-- 引用原文时标注位置
-- 如果页面内容不足以回答，请如实说明`,
-    user: (ctx, msg) => `页面标题：${ctx.title}\n页面URL：${ctx.url}\n\n页面内容：\n${ctx.textContent.slice(0, 8000)}\n\n用户问题：${msg}`,
+    name: 'Page Chat',
+    system: `You are an intelligent assistant. The user is browsing a web page; answer questions based on the page content.
+Rules:
+- Base answers on the page content; do not fabricate
+- When quoting the original text, indicate where it appears
+- If the page content is insufficient to answer, say so honestly`,
+    user: (ctx, msg) => `Page title: ${ctx.title}\nPage URL: ${ctx.url}\n\nPage content:\n${ctx.textContent.slice(0, 8000)}\n\nUser question: ${msg}`,
   },
   summary: {
     id: 'summary',
-    name: '页面摘要',
-    system: `你是一个内容摘要专家。请为以下网页内容生成摘要。`,
-    user: (ctx, _msg) => `请为以下内容生成摘要：\n\n${ctx.textContent.slice(0, 12000)}`,
+    name: 'Page Summary',
+    system: `You are a content summarization expert. Generate a summary of the following web page content.`,
+    user: (ctx, _msg) => `Please summarize the following content:\n\n${ctx.textContent.slice(0, 12000)}`,
   },
   translate: {
     id: 'translate',
-    name: '翻译',
-    system: `你是一个专业翻译。请将用户提供的文本翻译为目标语言。仅输出翻译结果，不要添加解释。`,
-    user: (ctx, msg) => msg,  // 翻译直接使用用户选中的文本
+    name: 'Translate',
+    system: `You are a professional translator. Translate the text provided by the user into the target language. Output only the translation, with no explanations.`,
+    user: (ctx, msg) => msg,  // translation uses the user's selected text directly
   },
 };
 ```
 
-#### 4.2.3 流式响应处理
+#### 4.2.3 Streaming Response Handling
 
 ```typescript
 // src/main/services/ai/stream-handler.ts
@@ -426,14 +426,14 @@ const TEMPLATES: Record<string, PromptTemplate> = {
 class StreamHandler {
   private buffer: string = '';
 
-  // 处理 Ollama 流式响应的 NDJSON
+  // Handle the NDJSON of an Ollama streaming response
   handleNDJSON(line: string): { text: string; done: boolean } {
     const chunk = JSON.parse(line);
     this.buffer += chunk.response;
     return { text: this.buffer, done: chunk.done };
   }
 
-  // 通过 IPC 发送流式更新到渲染进程
+  // Send streaming updates to the renderer via IPC
   async pipeToIPC(
     stream: AsyncIterable<Buffer>,
     channel: string,
@@ -441,7 +441,7 @@ class StreamHandler {
   ): Promise<string> {
     for await (const chunk of stream) {
       const { text, done } = this.handleNDJSON(chunk.toString());
-      // 发送增量更新
+      // Send incremental update
       mainWindow.webContents.send(channel, {
         tabId,
         text,
@@ -459,54 +459,54 @@ class StreamHandler {
 
 ### 4.3 Agent Engine
 
-#### 4.3.1 任务规划器 (Planner)
+#### 4.3.1 Task Planner (Planner)
 
 ```typescript
 // src/main/services/agent/planner.ts
 
 interface AgentTask {
   id: string;
-  description: string;          // 用户自然语言描述
-  steps: AgentStep[];           // 分解后的步骤
+  description: string;          // natural-language description from the user
+  steps: AgentStep[];           // decomposed steps
   status: 'planning' | 'executing' | 'completed' | 'failed';
   result?: TaskResult;
 }
 
 interface AgentStep {
   id: number;
-  tool: string;                 // 使用的工具名
-  input: Record<string, any>;   // 工具输入参数
-  output?: any;                 // 执行结果
+  tool: string;                 // name of the tool to use
+  input: Record<string, any>;   // tool input parameters
+  output?: any;                 // execution result
   status: 'pending' | 'running' | 'done' | 'error';
 }
 
 class Planner {
-  // 使用 LLM 将自然语言任务分解为可执行步骤
+  // Use the LLM to decompose a natural-language task into executable steps
   async plan(taskDescription: string): Promise<AgentStep[]> {
-    const prompt = `将以下任务分解为浏览器操作步骤，每个步骤使用一个工具。
-可用工具：navigate, click, type, extract, scroll, wait
+    const prompt = `Decompose the following task into browser operation steps, one tool per step.
+Available tools: navigate, click, type, extract, scroll, wait
 
-任务：${taskDescription}
+Task: ${taskDescription}
 
-请以 JSON 数组格式输出步骤。`;
+Output the steps as a JSON array.`;
 
-    // 调用 Ollama 生成计划
+    // Call Ollama to generate the plan
     const response = await this.ollama.generate('planner', prompt);
     return JSON.parse(response);
   }
 }
 ```
 
-#### 4.3.2 执行引擎（实现在 `agent.ipc.ts`）
+#### 4.3.2 Execution Engine (implemented in `agent.ipc.ts`)
 
-执行循环直接实现在 IPC handler 内（早期的独立 `Executor` 类已被移除——它无法感知 toolContext、占位符替换与进度推送）：
+The execution loop is implemented directly in the IPC handler (the earlier standalone `Executor` class was removed — it had no access to toolContext, placeholder substitution, or progress pushes):
 
-- 顺序执行步骤；`<previous_result>` 占位符递归替换为上一步输出
-- 每个步骤前后通过 `agent:step` 推送 `{ tabId, taskId, type:'step_update', step }`——**事件携带 tabId**，切换标签页不会把进度记错会话
-- `agent:cancel(taskId)` 触发 `AbortController`，循环在步骤间检查信号，剩余步骤标记 error，任务以 failed 结束（真取消）
-- 单步失败不中断任务（容忍降级），最终 `result.success` 反映是否全部成功
+- Steps run sequentially; the `<previous_result>` placeholder is recursively replaced with the previous step's output
+- Before and after each step, `{ tabId, taskId, type:'step_update', step }` is pushed via `agent:step` — **events carry tabId**, so switching tabs never attributes progress to the wrong session
+- `agent:cancel(taskId)` triggers an `AbortController`; the loop checks the signal between steps, remaining steps are marked error, and the task ends as failed (true cancellation)
+- A single step failure does not abort the task (tolerant degradation); the final `result.success` reflects whether everything succeeded
 
-#### 4.3.3 Tool 系统
+#### 4.3.3 Tool System
 
 ```typescript
 // src/main/services/agent/tool-registry.ts
@@ -534,22 +534,22 @@ class ToolRegistry {
 }
 ```
 
-内置 Tools：
+Built-in tools:
 
-| Tool | 描述 | 参数 |
+| Tool | Description | Parameters |
 |------|------|------|
-| `navigate` | 导航到 URL | `url: string` |
-| `click` | 点击页面元素 | `selector: string` |
-| `type` | 输入文本 | `selector: string, text: string` |
-| `extract` | 提取页面数据 | `selector: string, schema: object` |
-| `scroll` | 滚动页面 | `direction: 'up' \| 'down', amount: number` |
-| `wait` | 等待元素出现 | `selector: string, timeout: number` |
+| `navigate` | Navigate to a URL | `url: string` |
+| `click` | Click a page element | `selector: string` |
+| `type` | Type text | `selector: string, text: string` |
+| `extract` | Extract page data | `selector: string, schema: object` |
+| `scroll` | Scroll the page | `direction: 'up' \| 'down', amount: number` |
+| `wait` | Wait for an element to appear | `selector: string, timeout: number` |
 
 ---
 
 ### 4.4 Privacy Module
 
-#### 4.4.1 内容过滤
+#### 4.4.1 Content Filtering
 
 ```typescript
 // src/main/services/privacy/content-filter.ts
@@ -564,40 +564,40 @@ interface FilterRule {
 class ContentFilter {
   private rules: FilterRule[];
 
-  // 使用 Electron 的 webRequest API 拦截请求
+  // Intercept requests using Electron's webRequest API
   installSessionFilter(session: Electron.Session): void;
-  // 加载过滤规则（内置 + 用户自定义）
+  // Load filter rules (built-in + user-defined)
   loadRules(rules: FilterRule[]): void;
-  // 统计拦截信息
+  // Collect blocking statistics
   getStats(tabId: number): FilterStats;
 }
 ```
 
-#### 4.4.2 追踪器检测
+#### 4.4.2 Tracker Detection
 
-基于已知追踪器域名列表（源自 EasyList/EasyPrivacy），在请求阶段拦截。
+Blocks requests at the request stage based on a list of known tracker domains (derived from EasyList/EasyPrivacy).
 
 ---
 
-## 5. 数据流与通信
+## 5. Data Flow and Communication
 
-### 5.1 IPC 通信设计
+### 5.1 IPC Communication Design
 
 ```typescript
 // src/shared/ipc-channels.ts
 
 export const IPC_CHANNELS = {
-  // 浏览器
+  // Browser
   TAB_CREATE: 'tab:create',
   TAB_CLOSE: 'tab:close',
   TAB_ACTIVATE: 'tab:activate',
-  TAB_UPDATE: 'tab:update',           // Main → Renderer 通知
+  TAB_UPDATE: 'tab:update',           // Main → Renderer notification
   NAVIGATE: 'browser:navigate',
   NAVIGATION_STATE: 'browser:nav-state',
 
   // AI
   AI_CHAT_SEND: 'ai:chat:send',
-  AI_CHAT_STREAM: 'ai:chat:stream',   // Main → Renderer 流式推送
+  AI_CHAT_STREAM: 'ai:chat:stream',   // Main → Renderer streaming push
   AI_SUMMARIZE: 'ai:summarize',
   AI_TRANSLATE: 'ai:translate',
 
@@ -608,9 +608,9 @@ export const IPC_CHANNELS = {
 
   // Agent
   AGENT_EXECUTE: 'agent:execute',
-  AGENT_STEP_UPDATE: 'agent:step',    // Main → Renderer 步骤更新
+  AGENT_STEP_UPDATE: 'agent:step',    // Main → Renderer step updates
 
-  // 书签/历史
+  // Bookmarks/history
   BOOKMARK_ADD: 'bookmark:add',
   BOOKMARK_LIST: 'bookmark:list',
   HISTORY_ADD: 'history:add',
@@ -618,10 +618,10 @@ export const IPC_CHANNELS = {
 } as const;
 ```
 
-### 5.2 典型数据流 — AI 对话
+### 5.2 Typical Data Flow — AI Chat
 
 ```
-用户输入 "这个页面讲了什么？"
+User enters "What is this page about?"
          │
          ▼
 ┌─────────────────┐
@@ -641,7 +641,7 @@ export const IPC_CHANNELS = {
 │                 │──► promptBuilder.build('chat', pageContext, userMsg)
 │                 │──► ollamaClient.chat(model, messages, onChunk)
 └─────────────────┘
-         │ IPC: ai:chat:stream (多次)
+         │ IPC: ai:chat:stream (multiple times)
          ▼
 ┌─────────────────┐
 │  Preload        │   ipcRenderer.on('ai:chat:stream', callback)
@@ -650,13 +650,13 @@ export const IPC_CHANNELS = {
          ▼
 ┌─────────────────┐
 │  Renderer       │   ai-store.appendChunk(delta)
-│  ChatPanel      │──► StreamingText 组件增量渲染
+│  ChatPanel      │──► StreamingText component renders incrementally
 └─────────────────┘
 ```
 
-### 5.3 状态管理
+### 5.3 State Management
 
-使用 Zustand 管理渲染进程内的 UI 状态：
+Zustand manages UI state within the renderer:
 
 ```typescript
 // src/renderer/store/ai-store.ts
@@ -673,13 +673,13 @@ interface AIState {
 }
 ```
 
-持久化数据（书签、历史、设置）存储在主进程的 SQLite / electron-store 中，通过 IPC 同步到渲染进程。
+Persistent data (bookmarks, history, settings) lives in SQLite / electron-store in the main process and is synced to the renderer via IPC.
 
 ---
 
-## 6. Ollama 集成设计
+## 6. Ollama Integration
 
-### 6.1 连接管理
+### 6.1 Connection Management
 
 ```typescript
 // src/main/services/ai/ollama-client.ts
@@ -688,11 +688,11 @@ class OllamaClient {
   private baseUrl: string;
   private reconnectTimer: NodeJS.Timer | null = null;
 
-  // 启动时调用
+  // Called at startup
   async initialize(config: OllamaConfig): Promise<void> {
     this.baseUrl = config.baseUrl;
     await this.checkConnection();
-    this.startHealthPolling();  // 每 30s 检查一次
+    this.startHealthPolling();  // check every 30s
   }
 
   private async checkConnection(): Promise<boolean> {
@@ -713,32 +713,32 @@ class OllamaClient {
 }
 ```
 
-### 6.2 推荐模型
+### 6.2 Recommended Models
 
-| 用途 | 推荐模型 | 参数量 | 说明 |
+| Use case | Model | Params | Notes |
 |------|----------|--------|------|
-| 通用对话 | llama3.2 | 3B | 轻量、快速 |
-| 高质量对话 | qwen2.5 | 7B | 中等、质量好 |
-| 摘要/翻译 | gemma2 | 2B | 专注文本任务 |
-| Agent 规划 | mistral | 7B | 推理能力强 |
+| General chat | llama3.2 | 3B | Lightweight, fast |
+| High-quality chat | qwen2.5 | 7B | Mid-size, good quality |
+| Summary/translation | gemma2 | 2B | Focused on text tasks |
+| Agent planning | mistral | 7B | Strong reasoning |
 
-MVP 阶段默认推荐 `llama3.2`，用户可自行切换。
+The MVP defaults to `llama3.2`; users can switch on their own.
 
-### 6.3 错误处理
+### 6.3 Error Handling
 
-| 场景 | 处理方式 |
+| Scenario | Handling |
 |------|----------|
-| Ollama 未启动 | UI 显示引导信息，提供启动命令 |
-| 模型未下载 | 显示下载进度条，调用 `ollama pull` |
-| 请求超时 | 提示重试，显示超时原因 |
-| GPU 内存不足 | 建议切换更小模型或减少上下文长度 |
-| 响应中断 | 保存已完成部分，标记为不完整 |
+| Ollama not running | UI shows onboarding guidance along with the startup command |
+| Model not downloaded | Show a download progress bar and invoke `ollama pull` |
+| Request timeout | Prompt a retry and show the timeout reason |
+| Insufficient GPU memory | Suggest a smaller model or a shorter context length |
+| Interrupted response | Keep the completed portion and mark it as incomplete |
 
 ---
 
-## 7. UI/UX 设计
+## 7. UI/UX Design
 
-### 7.1 主界面布局
+### 7.1 Main Window Layout
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -766,14 +766,14 @@ MVP 阶段默认推荐 `llama3.2`，用户可自行切换。
 └──────────────────────────────────────────────┴───────────────────┘
 ```
 
-### 7.2 侧边栏设计
+### 7.2 Sidebar Design
 
-- **位置**：右侧，可拖拽调整宽度（默认 380px）
-- **切换**：Cmd+Shift+S 或点击地址栏图标
-- **标签页**：摘要 / 对话 / 翻译，可滑动切换
-- **状态栏**：显示当前模型名称和 Ollama 连接状态
+- **Position**: right side, resizable by dragging (default 380px)
+- **Toggle**: Cmd+Shift+S or the icon in the address bar
+- **Tabs**: Summary / Chat / Translate, swipeable
+- **Status bar**: shows the current model name and the Ollama connection status
 
-### 7.3 命令面板 (Cmd+K)
+### 7.3 Command Palette (Cmd+K)
 
 ```
 ┌─────────────────────────────────────┐
@@ -789,39 +789,39 @@ MVP 阶段默认推荐 `llama3.2`，用户可自行切换。
 └─────────────────────────────────────┘
 ```
 
-### 7.4 设计规范
+### 7.4 Design Guidelines
 
-- **字体**：SF Pro (macOS 原生)，代码用 SF Mono
-- **圆角**：8px（按钮/卡片），12px（面板/窗口）
-- **阴影**：使用 macOS 原生窗口效果
-- **动画**：侧边栏滑入/出 200ms ease-in-out，消息逐字显示
-- **色彩**：
-  - 亮色：白底 + 灰度层级 + 蓝色强调
-  - 暗色：深灰底 + 浅灰层级 + 蓝色强调
-  - AI 相关元素使用紫色强调色
+- **Typography**: SF Pro (macOS native); SF Mono for code
+- **Corner radius**: 8px (buttons/cards), 12px (panels/windows)
+- **Shadows**: native macOS window effects
+- **Animation**: sidebar slides in/out over 200ms ease-in-out; messages render character by character
+- **Colors**:
+  - Light: white background + gray hierarchy + blue accent
+  - Dark: dark-gray background + light-gray hierarchy + blue accent
+  - AI-related elements use a purple accent
 
 ---
 
-## 8. 数据存储方案
+## 8. Data Storage
 
 ### 8.1 SQLite (better-sqlite3)
 
-用于结构化数据：
+Used for structured data:
 
 ```sql
--- 书签
+-- Bookmarks
 CREATE TABLE bookmarks (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   url TEXT NOT NULL,
   favicon_url TEXT,
-  parent_id TEXT,           -- 文件夹层级
+  parent_id TEXT,           -- folder hierarchy
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (parent_id) REFERENCES bookmarks(id)
 );
 
--- 历史记录
+-- History
 CREATE TABLE history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   url TEXT NOT NULL,
@@ -830,12 +830,12 @@ CREATE TABLE history (
   last_visit_time INTEGER NOT NULL
 );
 
--- AI 对话记录
--- 聊天会话持久化（设计预留，当前未实现：会话仅存于渲染进程 ai-store）
+-- AI conversation records
+-- Chat session persistence (design placeholder, not implemented yet: sessions live only in the renderer's ai-store)
 -- CREATE TABLE conversations ( ... );
 -- CREATE TABLE messages ( ... );
 
--- 下载记录
+-- Downloads
 CREATE TABLE downloads (
   id TEXT PRIMARY KEY,
   url TEXT NOT NULL,
@@ -849,14 +849,14 @@ CREATE TABLE downloads (
 );
 ```
 
-**数据库位置**：`~/Library/Application Support/WiseWander/data.db`
+**Database location**: `~/Library/Application Support/WiseWander/data.db`
 
 ### 8.2 electron-store
 
-用于键值配置数据：
+Used for key-value configuration data:
 
 ```typescript
-// 默认配置
+// Default configuration
 const DEFAULT_CONFIG = {
   ollama: {
     baseUrl: 'http://localhost:11434',
@@ -885,138 +885,138 @@ const DEFAULT_CONFIG = {
 };
 ```
 
-**配置文件位置**：`~/Library/Application Support/WiseWander/config.json`
+**Config file location**: `~/Library/Application Support/WiseWander/config.json`
 
 ---
 
-## 9. 分阶段实施路线图
+## 9. Phased Implementation Roadmap
 
-### Phase 1: 基础框架 (Week 1-2)
+### Phase 1: Foundation (Week 1-2)
 
-**目标**：跑通 Electron + React 空壳
+**Goal**: get an Electron + React skeleton running
 
-- [ ] 项目脚手架 (electron-vite + React + TypeScript)
-- [ ] 主窗口创建、菜单栏
-- [ ] WebView 容器实现
-- [ ] IPC 通信基础架构
-- [ ] Preload 安全桥接
-- [ ] 基础 UI 布局（TabBar + AddressBar + WebView）
+- [ ] Project scaffolding (electron-vite + React + TypeScript)
+- [ ] Main window creation, menu bar
+- [ ] WebView container implementation
+- [ ] IPC communication foundation
+- [ ] Preload security bridge
+- [ ] Basic UI layout (TabBar + AddressBar + WebView)
 
-### Phase 2: 浏览器核心 (Week 2-3)
+### Phase 2: Browser Core (Week 2-3)
 
-**目标**：可用的浏览器基础功能
+**Goal**: usable core browser features
 
-- [ ] 标签管理（创建/关闭/切换/恢复）
-- [ ] 地址栏导航 + 自动补全
-- [ ] 书签 CRUD + 书签栏
-- [ ] 历史记录 + 搜索
-- [ ] 下载管理
-- [ ] 前进/后退/刷新
-- [ ] SQLite 数据存储层
-- [ ] 快捷键绑定
+- [ ] Tab management (create/close/switch/restore)
+- [ ] Address bar navigation + autocomplete
+- [ ] Bookmark CRUD + bookmark bar
+- [ ] History + search
+- [ ] Download management
+- [ ] Forward/back/reload
+- [ ] SQLite data storage layer
+- [ ] Keyboard shortcut bindings
 
-### Phase 3: AI 侧边栏 (Week 3-4)
+### Phase 3: AI Sidebar (Week 3-4)
 
-**目标**：AI 对话能力上线
+**Goal**: AI chat capability goes live
 
-- [ ] Ollama 客户端实现
-- [ ] 连接检测 + 状态显示
-- [ ] 页面上下文提取
-- [ ] Prompt 模板系统
-- [ ] 流式响应处理
-- [ ] 侧边栏 UI（ChatPanel）
-- [ ] 一键摘要功能
-- [ ] 选区翻译功能
-- [ ] 模型选择 UI
+- [ ] Ollama client implementation
+- [ ] Connection detection + status display
+- [ ] Page context extraction
+- [ ] Prompt template system
+- [ ] Streaming response handling
+- [ ] Sidebar UI (ChatPanel)
+- [ ] One-click summarization
+- [ ] Selection translation
+- [ ] Model selection UI
 
-### Phase 4: AI 自动化 (Week 5-8)
+### Phase 4: AI Automation (Week 5-8)
 
-**目标**：Agent 能力上线
+**Goal**: agent capability goes live
 
-- [ ] Tool 系统框架
-- [ ] 内置 Tools 实现（navigate, click, type, extract）
-- [ ] 任务规划器（LLM 分解步骤）
-- [ ] 执行引擎
-- [ ] 页面观察器（DOM 变化监听）
-- [ ] Agent 控制面板 UI
-- [ ] 表单自动填写
-- [ ] 批量数据采集
+- [ ] Tool system framework
+- [ ] Built-in tools implementation (navigate, click, type, extract)
+- [ ] Task planner (LLM step decomposition)
+- [ ] Execution engine
+- [ ] Page observer (DOM mutation watching)
+- [ ] Agent control panel UI
+- [ ] Automatic form filling
+- [ ] Bulk data collection
 
-### Phase 5: 研究助手 (Week 9-12)
+### Phase 5: Research Assistant (Week 9-12)
 
-**目标**：多标签协同研究
+**Goal**: multi-tab collaborative research
 
-- [ ] 多标签信息聚合
-- [ ] 信息对比引擎
-- [ ] 报告生成（Markdown 输出）
-- [ ] 来源追溯系统
-- [ ] 研究会话持久化
-- [ ] 研究助手面板 UI
+- [ ] Multi-tab information aggregation
+- [ ] Information comparison engine
+- [ ] Report generation (Markdown output)
+- [ ] Source traceability
+- [ ] Research session persistence
+- [ ] Research assistant panel UI
 
-### Phase 6: 隐私与打磨 (Week 13-16)
+### Phase 6: Privacy and Polish (Week 13-16)
 
-**目标**：隐私保护 + 产品打磨
+**Goal**: privacy protection + product polish
 
-- [ ] 隐私浏览模式
-- [ ] 广告/追踪器拦截
-- [ ] 隐私仪表盘
-- [ ] 指纹保护
-- [ ] 命令面板 (Cmd+K)
-- [ ] 主题系统
-- [ ] 工作区保存/恢复
+- [ ] Private browsing mode
+- [ ] Ad/tracker blocking
+- [ ] Privacy dashboard
+- [ ] Fingerprint protection
+- [ ] Command palette (Cmd+K)
+- [ ] Theme system
+- [ ] Workspace save/restore
 
-### Phase 7: 发布准备 (Week 17-20)
+### Phase 7: Release Preparation (Week 17-20)
 
-**目标**：v1.0 发布
+**Goal**: v1.0 release
 
-- [ ] 全面测试与 Bug 修复
-- [ ] 性能优化
-- [ ] macOS 签名与公证
-- [ ] 自动更新机制
-- [ ] 用户文档
-- [ ] Chrome 扩展兼容层（可选）
-- [ ] 云模型 API 备选（可选）
+- [ ] Full testing and bug fixes
+- [ ] Performance optimization
+- [ ] macOS code signing and notarization
+- [ ] Auto-update mechanism
+- [ ] User documentation
+- [ ] Chrome extension compatibility layer (optional)
+- [ ] Cloud model API fallback (optional)
 
 ---
 
-## 10. 实现修订记录（2026-09-15 全面修复）
+## 10. Implementation Revision Log (2026-09-15 Comprehensive Fixes)
 
-与 1.0.0 版设计相比，本次一致性修复后代码与文档的关键差异点：
+Compared with the 1.0.0 design, the key code-vs-doc differences after this consistency pass:
 
-### 10.1 已修复的缺陷
+### 10.1 Fixed Defects
 
-| 类别 | 内容 |
+| Category | Details |
 |------|------|
-| 可中止性 | AI 聊天 Stop 按钮从"仅本地置状态"改为 `AbortSignal` 贯穿 router→adapter→client→fetch 的真中止；Agent 新增 `agent:cancel(taskId)`（此前通道无 handler，不可取消） |
-| 会话归属 | `agent:step` 事件携带 `tabId`，修复执行中切换标签页导致步骤记错会话的缺陷 |
-| 数据完整性 | `will-download` 接入 `DownloadService`（此前下载记录从不落库）；`download:progress/done` 通道纳入 `IPC_CHANNELS`；DownloadBar 从空壳改为真实下载列表（进度条/取消/清理） |
-| 页面监控 | `monitored_pages` 新增 `last_content_snapshot` 列，AI 变更摘要基于真实新旧快照（此前把哈希值当"旧内容"传给 LLM），`page_changes` 快照列正常写入 |
-| 语义书签 | 修复 `embedding-service.ts` 导入不存在的 `OLLAMA_BASE_URL`（整条语义搜索链路曾不可用） |
-| 隐私 | `privacy:stats` 接入 ContentFilter 真实分类统计；`privacy:filters:set` 实时生效；指纹防护接入 `web-contents-created`（此前整类死代码）；隐私模式 `privacy:mode:toggle` 现在真正强制仅本地路由（`ModelRouter.setLocalOnly`） |
-| 设置持久化 | 主题/书签栏开关统一到 `appearance.*` 键（此前读顶层 `theme`、写 `appearance.theme`，重启即丢）；PrivacyConfig 开关全部持久化并即时生效 |
-| AI 路由 | `ollama.baseUrl` 配置真正生效（`buildAdapters` 时应用到共享 client）；聊天失败时使健康缓存失效并故障转移（此前 30s 内重复撞同一离线 provider）；Anthropic 健康检查改为离线校验（此前每次探测都是计费请求） |
-| Agent | Planner 的模型改为惰性读取（此前启动时固化）；移除每次规划写 `/tmp` 的调试遗留 |
-| 工程化 | `typecheck` 脚本从空操作改为双 tsconfig 检查（暴露并修复 8 个主进程 + 45 个渲染进程既有类型错误）；补装 ESLint 9 并新增 flat config（此前 lint 脚本引用不存在的二进制）；清理全部 lint 错误 |
-| 结构 | AI 单例移至 `services/ai/router-instance.ts`，消除 service→ipc 循环依赖；删除死代码：`Executor`、`StreamHandler`(+test)、`context-extractor`、`Modal.tsx`、`conversations/messages` 表、未用常量与 `rehype-raw` 依赖；标签恢复/重排由渲染进程 recently-closed 栈承担（BR-006），主进程不做重复实现 |
+| Abortability | The AI chat Stop button changed from "only resetting local state" to true abortion with an `AbortSignal` threaded through router→adapter→client→fetch; agents gained `agent:cancel(taskId)` (the channel previously had no handler and could not cancel) |
+| Session attribution | `agent:step` events carry `tabId`, fixing the bug where switching tabs mid-execution recorded steps into the wrong session |
+| Data integrity | `will-download` is wired to `DownloadService` (download records previously never reached the database); the `download:progress/done` channels are now in `IPC_CHANNELS`; DownloadBar went from an empty shell to a real download list (progress bar/cancel/clear) |
+| Page monitoring | `monitored_pages` gained a `last_content_snapshot` column so AI change summaries are based on real old/new snapshots (previously the hash was passed to the LLM as the "old content"); the `page_changes` snapshot column is now written properly |
+| Semantic bookmarks | Fixed `embedding-service.ts` importing a nonexistent `OLLAMA_BASE_URL` (the entire semantic search path was broken) |
+| Privacy | `privacy:stats` now reports real ContentFilter category statistics; `privacy:filters:set` takes effect immediately; fingerprint protection is hooked into `web-contents-created` (previously an entire class of dead code); privacy mode `privacy:mode:toggle` now genuinely enforces local-only routing (`ModelRouter.setLocalOnly`) |
+| Settings persistence | Theme/bookmark-bar toggles unified under the `appearance.*` keys (previously the top-level `theme` was read while `appearance.theme` was written, so settings were lost on restart); all PrivacyConfig toggles persist and take effect immediately |
+| AI routing | The `ollama.baseUrl` config now takes effect (applied to the shared client in `buildAdapters`); chat failures invalidate the health cache and fail over (previously the same offline provider was hit repeatedly within 30s); the Anthropic health check became an offline validation (previously every probe was a billable request) |
+| Agent | The planner's model is now read lazily (previously frozen at startup); removed the debug leftover that wrote to `/tmp` on every plan |
+| Engineering | The `typecheck` script went from a no-op to dual-tsconfig checks (surfacing and fixing 8 pre-existing main-process and 45 renderer type errors); installed ESLint 9 with a new flat config (the lint script previously referenced a nonexistent binary); cleaned up all lint errors |
+| Structure | The AI singleton moved to `services/ai/router-instance.ts`, eliminating the service→ipc circular dependency; deleted dead code: `Executor`, `StreamHandler` (+test), `context-extractor`, `Modal.tsx`, the `conversations/messages` tables, unused constants, and the `rehype-raw` dependency; tab restore/reorder is handled by the renderer's recently-closed stack (BR-006) and the main process no longer implements it redundantly |
 
-### 10.2 与设计文档的已知偏差（有意保留）
+### 10.2 Known Deviations from the Design Document (Intentional)
 
-- 聊天会话持久化（conversations/messages 表）仍是设计预留，未实现
-- `capability:multi-tab:stream` 半成品流式接口已移除，多标签分析为一次性请求
-- Anthropic 健康检查为离线校验（配置了 key 即视为在线），失败靠真实请求的故障转移兜底
-- Agent 规划固定使用本地 Ollama 直连（隐私取向），不参与云兜底路由
-- 构建管线会把源码中的 `require()` 转换为 `createRequire`，但仍建议直接使用 ESM `import`
-- `tab-store` 持久化用的 sessionStorage 在 Electron 中可能跨应用实例从磁盘恢复（Chromium session 目录），表现为"上次会话的标签"在新启动时迟到恢复；App 的会话恢复分支依赖此行为，E2E 中对空状态后的标签计数做了时序免疫处理
+- Chat session persistence (conversations/messages tables) remains a design placeholder, not implemented
+- The half-finished `capability:multi-tab:stream` streaming API was removed; multi-tab analysis is a single one-shot request
+- The Anthropic health check is an offline validation (a configured key counts as online); failures are covered by real-request failover
+- Agent planning always uses a direct local Ollama connection (privacy-first) and does not participate in cloud fallback routing
+- The build pipeline converts `require()` in source code to `createRequire`, but ESM `import` is still recommended
+- The sessionStorage used for `tab-store` persistence may be restored from disk across app instances in Electron (Chromium session directory), so "last session's tabs" can reappear late after a fresh launch; the app's session-restore branch depends on this behavior, and the E2E suite added timing tolerance to tab counts after the empty state
 
-### 10.3 死代码清理（2026-09-15 第二次全面审计）
+### 10.3 Dead Code Cleanup (Second Full Audit, 2026-09-15)
 
-以"每个 IPC 通道必须有真实发送方与接收方"为原则清理：
+Cleanup was guided by the principle "every IPC channel must have a real sender and receiver":
 
-| 类别 | 内容 |
+| Category | Details |
 |------|------|
-| 死 IPC 端点 | 移除 `browser:navigate*` 四件套与 `browser:page-context`（导航由 renderer 直接调 webview 方法，历史由 `historyAdd` 记录）；移除 `tab:restore`/`tab:reorder`（renderer 的 recently-closed 栈已覆盖，TabManager 恢复为纯元数据）；移除 legacy `cloud:config:*` 三件套（首启迁移逻辑保留在 router 内部，孤儿方法 `setCloudConfig`/`testCloudConnection` 一并移除）；移除 `research:report`（`research:execute` 已同步返回报告） |
-| 未用常量 | `SIDEBAR_DEFAULT_WIDTH` 删除；`OPENAI_COMPATIBLE_DEFAULT_URL` 改为被 openai-compatible-client 实际引用 |
-| 类型清理 | `WebviewContextParams` 移除不再传输的 `frameType`/`pageEncoding` 字段 |
-| 依赖 | 卸载无引用的 `@faker-js/faker`、`msw`、`@testing-library/react`、`@testing-library/jest-dom`（TEST.md §2.1 保留为规划选型注记） |
-| 工程 | 安装 `electron-builder` 修复 `postinstall`（此前引用不存在的二进制；现在 `npm install` 后 better-sqlite3 自动重编译为 Electron ABI） |
-| 目录 | 删除 16 个规划遗留空目录（`tests/setup/`、`tests/fixtures/*/` 等）与 `playwright-report/`、`test-results/` 生成物 |
+| Dead IPC endpoints | Removed the four `browser:navigate*` channels and `browser:page-context` (navigation is performed by the renderer calling webview methods directly, and history is recorded via `historyAdd`); removed `tab:restore`/`tab:reorder` (the renderer's recently-closed stack already covers this, and TabManager is now pure metadata); removed the legacy `cloud:config:*` trio (first-run migration logic remains inside the router, and the orphaned `setCloudConfig`/`testCloudConnection` methods were removed along with it); removed `research:report` (`research:execute` already returns the report synchronously) |
+| Unused constants | `SIDEBAR_DEFAULT_WIDTH` deleted; `OPENAI_COMPATIBLE_DEFAULT_URL` is now actually referenced by openai-compatible-client |
+| Type cleanup | `WebviewContextParams` dropped the no-longer-transmitted `frameType`/`pageEncoding` fields |
+| Dependencies | Uninstalled the unreferenced `@faker-js/faker`, `msw`, `@testing-library/react`, `@testing-library/jest-dom` (kept in TEST.md §2.1 as planned-selection notes) |
+| Engineering | Installed `electron-builder` to fix `postinstall` (it previously referenced a nonexistent binary; better-sqlite3 is now automatically rebuilt against the Electron ABI after `npm install`) |
+| Directories | Deleted 16 empty directories left over from planning (`tests/setup/`, `tests/fixtures/*/`, etc.) plus the `playwright-report/` and `test-results/` build artifacts |

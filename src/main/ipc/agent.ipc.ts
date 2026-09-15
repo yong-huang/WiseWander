@@ -61,7 +61,7 @@ export function registerAgentIpc(): void {
           task.status = 'failed'
           task.result = {
             success: false,
-            error: '无法用现有工具完成此任务。可用的工具包括：navigate, click, type, extract, scroll, wait, ai_process。请尝试更具体的浏览器操作描述。',
+            error: 'This task cannot be completed with the available tools. Available tools: navigate, click, type, extract, scroll, wait, ai_process. Try a more specific browser-action description.',
           }
           return task
         }
