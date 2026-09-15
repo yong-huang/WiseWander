@@ -29,13 +29,13 @@ export function RecommendationCard({ recommendation, onClick }: RecommendationCa
   return (
     <button
       onClick={() => onClick(url)}
-      className="group flex flex-col rounded-lg border border-gray-200 bg-white p-3 text-left transition-all hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
+      className="group flex flex-col rounded-2xl border border-gray-200/80 bg-white p-3.5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-[0_8px_24px_rgb(16_24_40/0.10)] dark:border-gray-700/70 dark:bg-gray-800/80 dark:shadow-none dark:hover:border-indigo-500/50 dark:hover:bg-gray-800"
     >
       <div className="mb-1 flex items-start gap-2">
         {faviconUrl && (
           <img src={faviconUrl} alt="" className="mt-0.5 h-4 w-4 shrink-0 rounded" />
         )}
-        <span className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 dark:text-gray-100 dark:group-hover:text-blue-400">
+        <span className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-300">
           {title}
         </span>
       </div>

@@ -456,7 +456,7 @@ export default function App(): React.ReactElement {
               const isOnline = ollamaStatus === 'online' || hasProvider
               const isChecking = ollamaStatus === 'checking' && !hasProvider
               return (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 backdrop-blur-sm">
+                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 shadow-sm ring-1 ring-white/10 backdrop-blur-md">
                   <div
                     className={`h-2 w-2 rounded-full ${
                       isOnline

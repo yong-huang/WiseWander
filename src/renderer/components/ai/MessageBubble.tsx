@@ -21,13 +21,13 @@ export function MessageBubble({
 
   return (
     <div
-      className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}
+      className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
     >
       <div
-        className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed ${
           role === 'user'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+            ? 'rounded-2xl rounded-br-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm'
+            : 'rounded-2xl rounded-bl-md bg-gray-50 text-gray-800 ring-1 ring-gray-200/70 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700/70'
         }`}
       >
         {role === 'assistant' ? (

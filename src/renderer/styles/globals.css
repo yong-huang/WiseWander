@@ -15,6 +15,21 @@
     --color-text-primary: #111827;
     --color-text-secondary: #6b7280;
     --color-border: #e5e7eb;
+
+    /* Accent scale (AI = blue → violet gradient) */
+    --accent: #4f46e5;
+    --accent-strong: #4338ca;
+    --accent-soft: rgba(79, 70, 229, 0.08);
+    --accent-ring: rgba(99, 102, 241, 0.18);
+
+    /* Elevation */
+    --shadow-soft: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.06);
+    --shadow-raised: 0 4px 12px rgb(16 24 40 / 0.08), 0 2px 4px rgb(16 24 40 / 0.04);
+    --shadow-overlay: 0 24px 60px rgb(16 24 40 / 0.18), 0 8px 20px rgb(16 24 40 / 0.10);
+
+    --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+      Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB',
+      'Microsoft YaHei', sans-serif;
   }
 
   .dark {
@@ -25,14 +40,37 @@
     --color-text-primary: #f9fafb;
     --color-text-secondary: #9ca3af;
     --color-border: #374151;
+
+    --accent: #818cf8;
+    --accent-strong: #a5b4fc;
+    --accent-soft: rgba(129, 140, 248, 0.12);
+    --accent-ring: rgba(129, 140, 248, 0.22);
+
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
+    --shadow-raised: 0 4px 14px rgb(0 0 0 / 0.45);
+    --shadow-overlay: 0 24px 60px rgb(0 0 0 / 0.55);
   }
 
   body {
     @apply bg-white text-gray-900 antialiased;
+    font-family: var(--font-ui);
+    text-rendering: optimizeLegibility;
   }
 
   .dark body {
     @apply bg-gray-900 text-gray-100;
+  }
+
+  /* Text selection uses the accent */
+  ::selection {
+    background: var(--accent-ring);
+  }
+
+  /* Keyboard focus consistency */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-radius: 6px;
   }
 }
 
@@ -40,6 +78,42 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175 / 0.5) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(156 163 175 / 0.45);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128 / 0.6);
+    background-clip: content-box;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: rgb(75 85 99 / 0.6) transparent;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(75 85 99 / 0.55);
+    background-clip: content-box;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(107 114 128 / 0.7);
+    background-clip: content-box;
   }
 
   .scrollbar-none {
@@ -64,5 +138,30 @@
   .drag-region [draggable] {
     -webkit-app-region: no-drag;
     app-region: no-drag;
+  }
+
+  /* Entrance animations (panels, overlays) */
+  .animate-fade-in {
+    animation: ww-fade-in 0.16s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: ww-slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes ww-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ww-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

@@ -16,9 +16,17 @@ function getGreeting(): string {
   return 'Good evening'
 }
 
+function getGreetingEmoji(): string {
+  const hour = new Date().getHours()
+  if (hour < 5) return '🌙'
+  if (hour < 12) return '☀️'
+  if (hour < 18) return '🌤️'
+  return '🌆'
+}
+
 function SkeletonCard(): React.ReactElement {
   return (
-    <div className="animate-pulse rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+    <div className="animate-pulse rounded-2xl border border-gray-200/80 bg-white p-3.5 dark:border-gray-700/70 dark:bg-gray-800/80">
       <div className="mb-2 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
       <div className="mb-1 h-3 w-full rounded bg-gray-100 dark:bg-gray-700/50" />
       <div className="h-3 w-2/3 rounded bg-gray-100 dark:bg-gray-700/50" />
@@ -59,18 +67,30 @@ export function NewTabPage({ isActive, onNavigate }: NewTabPageProps): React.Rea
 
   return (
     <div
-      className="h-full w-full flex flex-col overflow-y-auto bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950"
+      className="relative h-full w-full flex flex-col overflow-y-auto scrollbar-thin bg-gray-50 dark:bg-gray-950"
       style={{ display: isActive ? 'flex' : 'none' }}
     >
-      <div className="mx-auto w-full max-w-4xl px-6 py-12">
+      {/* Ambient gradient blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute -top-24 left-1/4 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl dark:bg-indigo-500/10" />
+        <div className="absolute top-16 -right-10 h-64 w-64 rounded-full bg-violet-400/10 blur-3xl dark:bg-violet-500/10" />
+        <div className="absolute top-40 -left-16 h-64 w-64 rounded-full bg-sky-300/10 blur-3xl dark:bg-sky-500/[0.07]" />
+      </div>
+      <div className="relative mx-auto w-full max-w-4xl px-6 py-12">
         {/* Greeting */}
-        <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-          {getGreeting()}
-        </h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            {getGreeting()}
+          </h1>
+          <span className="text-lg" aria-hidden>{getGreetingEmoji()}</span>
+        </div>
+        <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+          WiseWander · AI-native browsing
+        </p>
 
         {/* Search bar */}
         <div className="mt-4">
-          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-blue-400 focus-within:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:focus-within:border-blue-500">
+          <div className="flex items-center gap-2.5 rounded-2xl border border-gray-200/90 bg-white px-4 py-3 shadow-[0_2px_12px_rgb(16_24_40/0.06)] transition-all duration-200 focus-within:border-indigo-400 focus-within:shadow-[0_4px_24px_rgb(79_70_229/0.15)] dark:border-gray-700/80 dark:bg-gray-800/90 dark:focus-within:border-indigo-500 dark:focus-within:shadow-[0_4px_24px_rgb(129_140_248/0.15)]">
             <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -98,7 +118,10 @@ export function NewTabPage({ isActive, onNavigate }: NewTabPageProps): React.Rea
 
         {/* Refresh button */}
         <div className="mt-6 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">For You</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300">
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-indigo-500" fill="currentColor"><path d="M8 1.5l1.4 3.9 3.9 1.4-3.9 1.4L8 12.1 6.6 8.2 2.7 6.8l3.9-1.4L8 1.5zM12.8 10.6l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7.7-1.9z" /></svg>
+            For You
+          </h2>
           <button
             onClick={handleRefresh}
             disabled={isLoading}
@@ -113,17 +136,17 @@ export function NewTabPage({ isActive, onNavigate }: NewTabPageProps): React.Rea
 
         {/* AI Recommendations */}
         {isLoading ? (
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="mt-3 grid grid-cols-3 gap-3.5">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : aiRecommendations.length > 0 ? (
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="mt-3 grid grid-cols-3 gap-3.5">
             {aiRecommendations.slice(0, 6).map((rec) => (
               <RecommendationCard key={rec.url} recommendation={rec} onClick={handleNavigate} />
             ))}
           </div>
         ) : (
-          <div className="mt-3 rounded-lg border border-dashed border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="mt-3 rounded-2xl border border-dashed border-gray-300/80 bg-white/60 p-8 text-center dark:border-gray-700 dark:bg-gray-800/50">
             <p className="text-sm text-gray-400 dark:text-gray-500">
               Start browsing to get personalized recommendations.
             </p>
@@ -144,9 +167,9 @@ export function NewTabPage({ isActive, onNavigate }: NewTabPageProps): React.Rea
                 <button
                   key={rec.url}
                   onClick={() => handleNavigate(rec.url)}
-                  className="group flex flex-col items-center gap-2 rounded-lg p-3 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="group flex flex-col items-center gap-2 rounded-2xl p-3 transition-all duration-150 hover:bg-white hover:shadow-[0_4px_16px_rgb(16_24_40/0.08)] dark:hover:bg-gray-800/80"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 text-lg font-bold text-blue-600 dark:from-blue-900/40 dark:to-purple-900/40 dark:text-blue-400">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/15 to-violet-500/15 text-lg font-bold text-indigo-600 ring-1 ring-indigo-500/10 transition-transform duration-150 group-hover:scale-105 dark:from-indigo-500/20 dark:to-violet-500/15 dark:text-indigo-300">
                     {rec.title.charAt(0).toUpperCase()}
                   </div>
                   <span className="max-w-full truncate text-xs text-gray-600 group-hover:text-blue-600 dark:text-gray-400 dark:group-hover:text-blue-400">
@@ -175,7 +198,7 @@ export function NewTabPage({ isActive, onNavigate }: NewTabPageProps): React.Rea
                   </span>
                   <div className="h-1.5 w-12 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
                     <div
-                      className="h-full rounded-full bg-blue-500 dark:bg-blue-400"
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500"
                       style={{ width: `${Math.min(profile.weight / 2 * 100, 100)}%` }}
                     />
                   </div>

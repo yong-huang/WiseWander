@@ -79,7 +79,7 @@ export function TabBar(): React.ReactElement {
   }
 
   return (
-    <div className="flex items-center bg-gray-100 dark:bg-gray-800 h-9 pl-20 pr-2 pt-1 select-none drag-region">
+    <div className="flex items-center bg-gray-100 dark:bg-gray-800 h-9 pl-20 pr-2 select-none drag-region border-b border-gray-200/80 dark:border-black/40 shadow-[inset_0_-1px_0_rgb(0_0_0/0.02)]">
       <div className="flex items-center gap-0.5 overflow-x-auto">
         {tabs.map((tab, index) => (
           <div
@@ -103,7 +103,7 @@ export function TabBar(): React.ReactElement {
           >
             {/* Favicon / loading spinner */}
             {tab.status === 'loading' ? (
-              <span className="h-3 w-3 shrink-0 animate-spin rounded-full border border-gray-300 border-t-blue-500" />
+              <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-[1.5px] border-gray-300 border-t-indigo-500" />
             ) : tab.favicon ? (
               <img src={tab.favicon} alt="" className="h-3 w-3 shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : (
@@ -118,7 +118,7 @@ export function TabBar(): React.ReactElement {
             {/* Close button */}
             <button
               onClick={(e) => handleClose(tab.id, e)}
-              className="shrink-0 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 px-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="shrink-0 h-4 w-4 leading-none flex items-center justify-center text-[11px] text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 rounded-full hover:bg-gray-300/70 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-150"
             >
               &times;
             </button>
@@ -129,8 +129,9 @@ export function TabBar(): React.ReactElement {
         {recentlyClosed.length > 0 && (
           <button
             onClick={() => restoreTab(recentlyClosed[0])}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-200/80 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
           >
+            <svg viewBox="0 0 14 14" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"><path d="M2 7a5 5 0 1 1 1.5 3.6M2 10.5V7.5h3" /></svg>
             Restore ({recentlyClosed.length})
           </button>
         )}
@@ -138,10 +139,10 @@ export function TabBar(): React.ReactElement {
         {/* New tab button */}
         <button
           onClick={() => createTab()}
-          className="ml-0.5 shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm px-2 py-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="ml-1 mr-1 shrink-0 flex items-center justify-center h-6 w-6 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 text-base leading-none rounded-md hover:bg-gray-200/80 dark:hover:bg-gray-700 transition-colors"
           title="New Tab (Cmd+T)"
         >
-          +
+          <svg viewBox="0 0 14 14" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"><path d="M7 2v10M2 7h10" /></svg>
         </button>
       </div>
       <ContextMenu items={menuItems} x={menuX} y={menuY} visible={menuVisible} onClose={hideMenu} />

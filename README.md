@@ -2,7 +2,9 @@
 
 AI Native 浏览器，基于 Electron + Ollama。本地模型优先、云端兜底，AI 能力（双助手、摘要、翻译、自动化 Agent、深度研究、爬虫、整页截图、页面监控、无障碍审计）作为浏览器一等公民，数据全部落在本地。
 
-![架构图](docs/diagrams/wisewander-architecture.visual-check.1440x900.light.png)
+| 新标签页(浅色) | 新标签页(深色) | AI 侧栏 |
+|---|---|---|
+| ![新标签页浅色](docs/screenshots/newtab-light.jpg) | ![新标签页深色](docs/screenshots/newtab-dark.jpg) | ![AI 侧栏](docs/screenshots/sidebar-light.jpg) |
 
 > 交互式架构图（支持主题切换 / 关系追踪 / 导出）：
 > - [系统架构](docs/diagrams/wisewander-architecture.html)

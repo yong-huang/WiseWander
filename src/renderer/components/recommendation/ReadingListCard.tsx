@@ -8,7 +8,7 @@ interface ReadingListCardProps {
 
 export function ReadingListCard({ item, onRemove, onClick }: ReadingListCardProps): React.ReactElement {
   return (
-    <div className="group flex items-start gap-2 rounded-md border border-gray-200 bg-white p-2 transition-all hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600">
+    <div className="group flex items-start gap-2 rounded-xl border border-gray-200/80 bg-white p-2.5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md dark:border-gray-700/70 dark:bg-gray-800/80 dark:shadow-none dark:hover:border-gray-600">
       <button
         onClick={() => onClick(item.url)}
         className="min-w-0 flex-1 text-left"

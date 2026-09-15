@@ -81,7 +81,7 @@ export function BookmarkBar({ onNavigate, visible }: BookmarkBarProps): React.Re
   if (!visible) return <></>
 
   return (
-    <div className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-850">
+    <div className="border-b border-gray-200/80 bg-gray-50/80 dark:border-gray-700/80 dark:bg-gray-850/80">
       {/* Search bar */}
       <div className="flex items-center gap-1 px-3 py-0.5 border-b border-gray-200 dark:border-gray-700">
         <input
@@ -98,10 +98,10 @@ export function BookmarkBar({ onNavigate, visible }: BookmarkBarProps): React.Re
             setSearchMode(next)
             if (searchQuery.trim()) handleSearch(searchQuery)
           }}
-          className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide transition-colors ${
             searchMode === 'semantic'
-              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300'
-              : 'text-gray-400 hover:text-gray-600'
+              ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200/70 dark:hover:text-gray-200 dark:hover:bg-gray-700'
           }`}
           title={searchMode === 'semantic' ? 'Switch to text search' : 'Switch to semantic search'}
         >
@@ -121,8 +121,8 @@ export function BookmarkBar({ onNavigate, visible }: BookmarkBarProps): React.Re
             <div key={bm.id} className="group flex items-center">
               <button
                 onClick={() => onNavigate(bm.url)}
-                className="flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-[11px]
-                  text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+                className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-colors
+                  text-gray-600 hover:bg-white hover:shadow-sm dark:text-gray-400 dark:hover:bg-gray-700"
                 title={bm.url}
               >
                 {bm.faviconUrl && (

@@ -72,12 +72,12 @@ export function ContextMenu({ items, x, y, visible, onClose }: ContextMenuProps)
   return (
     <div
       ref={menuRef}
-      className="fixed z-[9999] min-w-[180px] rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1 text-sm"
+      className="fixed z-[9999] min-w-[180px] overflow-hidden rounded-xl border border-gray-200/80 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-[var(--shadow-overlay)] py-1 text-sm animate-fade-in"
       style={{ left: adjustedPos.x, top: adjustedPos.y }}
     >
       {items.map((item, i) =>
         'separator' in item && item.separator ? (
-          <div key={`sep-${i}`} className="my-1 border-t border-gray-200 dark:border-gray-700" />
+          <div key={`sep-${i}`} className="my-1 border-t border-gray-200/70 dark:border-gray-700/70" />
         ) : (
           <button
             key={item.label}
@@ -93,8 +93,8 @@ export function ContextMenu({ items, x, y, visible, onClose }: ContextMenuProps)
             } ${
               item.disabled
                 ? 'opacity-40 cursor-default'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
-            }`}
+                : 'hover:bg-indigo-50 dark:hover:bg-indigo-500/15 cursor-pointer'
+            } transition-colors duration-150`}
           >
             <span>{item.label}</span>
             {item.shortcut && (

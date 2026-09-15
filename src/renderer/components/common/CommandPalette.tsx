@@ -62,15 +62,15 @@ export function CommandPalette({ isOpen, onClose, commands }: CommandPaletteProp
   let flatIndex = 0
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/25 backdrop-blur-[2px] animate-fade-in pt-[20vh]" onClick={onClose}>
       <div
-        className="w-[520px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+        className="w-[560px] overflow-hidden rounded-2xl border border-gray-200/70 bg-white/95 shadow-[var(--shadow-overlay)] backdrop-blur-xl animate-slide-up dark:border-gray-700/70 dark:bg-gray-900/95"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
         <div className="flex items-center border-b border-gray-200 px-4 dark:border-gray-700">
-          <span className="mr-2 text-gray-400">&gt;</span>
+          <svg viewBox="0 0 16 16" className="mr-2.5 h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><path d="M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM14 14l-3.2-3.2" /></svg>
           <input
             ref={inputRef}
             type="text"
@@ -79,7 +79,7 @@ export function CommandPalette({ isOpen, onClose, commands }: CommandPaletteProp
             placeholder="Type a command..."
             className="flex-1 py-3 text-sm outline-none bg-transparent dark:text-gray-100"
           />
-          <kbd className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400 dark:bg-gray-800">
+          <kbd className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:border-gray-700 dark:bg-gray-800">
             ESC
           </kbd>
         </div>
@@ -106,9 +106,9 @@ export function CommandPalette({ isOpen, onClose, commands }: CommandPaletteProp
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex w-full items-center rounded-md px-3 py-2 text-left text-sm ${
                       idx === selectedIndex
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:ring-indigo-500/30'
                         : 'text-gray-700 dark:text-gray-300'
-                    }`}
+                    } transition-colors`}
                   >
                     {cmd.icon && <span className="mr-2">{cmd.icon}</span>}
                     <span>{cmd.label}</span>

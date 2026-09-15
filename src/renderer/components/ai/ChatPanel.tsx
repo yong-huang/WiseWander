@@ -152,7 +152,7 @@ export function ChatPanel({ messages, isStreaming, onSend, onStop }: ChatPanelPr
         ))}
 
         {isExecutingTools && (
-          <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <div className="flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300">
             <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
             Executing tools...
           </div>
@@ -188,14 +188,14 @@ export function ChatPanel({ messages, isStreaming, onSend, onStop }: ChatPanelPr
             onKeyDown={handleKeyDown}
             placeholder="Ask about this page, summarize, translate..."
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-              dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+            className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-inner
+              transition-all focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10
+              dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-indigo-500"
           />
           {isStreaming ? (
             <button
               onClick={handleStop}
-              className="shrink-0 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+              className="shrink-0 rounded-xl bg-red-500/95 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 active:scale-95 shadow-sm"
             >
               Stop
             </button>
@@ -203,8 +203,8 @@ export function ChatPanel({ messages, isStreaming, onSend, onStop }: ChatPanelPr
             <button
               onClick={handleSubmit}
               disabled={!input.trim()}
-              className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white
-                hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white
+                shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Send
             </button>

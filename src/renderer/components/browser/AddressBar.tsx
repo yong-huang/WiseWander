@@ -158,26 +158,26 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-700 drag-region">
+    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/95 dark:bg-gray-850 border-b border-gray-200/80 dark:border-gray-700/80 drag-region">
       {/* Navigation buttons */}
       <div className="flex items-center gap-0.5">
         <button
           onClick={() => getActiveWebview()?.goBack()}
-          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-700 active:scale-95 transition-all"
         >
-          &#8592;
+          <span className="text-base leading-none">&larr;</span>
         </button>
         <button
           onClick={() => getActiveWebview()?.goForward()}
-          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-700 active:scale-95 transition-all"
         >
-          &#8594;
+          <span className="text-base leading-none">&rarr;</span>
         </button>
         <button
           onClick={() => getActiveWebview()?.reload()}
-          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-700 active:scale-95 transition-all"
         >
-          &#8635;
+          <span className="text-base leading-none">&#8635;</span>
         </button>
       </div>
 
@@ -194,7 +194,7 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
         }}
         onBlur={() => setIsFocused(false)}
         onContextMenu={handleContextMenu}
-        className="flex-1 px-3 py-1 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100"
+        className="flex-1 px-4 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600/80 rounded-full shadow-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:text-gray-100 dark:placeholder-gray-500 transition-all duration-150"
         placeholder="Search or enter URL..."
       />
 
@@ -211,10 +211,10 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
               window.dispatchEvent(new CustomEvent('bookmark-changed'))
             }
           }}
-          className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+          className={`p-1.5 rounded-full active:scale-90 transition-all ${
             isBookmarked
-              ? 'text-blue-500 dark:text-blue-400'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+              ? 'text-amber-500 dark:text-amber-400'
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700'
           }`}
           title={isBookmarked ? 'Remove bookmark (Cmd+D)' : 'Bookmark this page (Cmd+D)'}
         >
@@ -229,17 +229,17 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
               })
             }
           }}
-          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-700 active:scale-95 transition-all"
           title="Add to Reading Queue"
         >
           &#43;
         </button>
         <button
           onClick={toggleSidebar}
-          className={`p-1.5 rounded ${
+          className={`p-1.5 rounded-full active:scale-95 transition-all ${
             sidebarOpen
-              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+              ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300'
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700'
           }`}
           title="Toggle AI Sidebar (Cmd+Shift+S)"
         >
@@ -247,10 +247,10 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
         </button>
         <button
           onClick={toggleDevTools}
-          className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+          className={`p-1.5 rounded-full active:scale-95 transition-all ${
             devToolsOpen
-              ? 'text-blue-600 dark:text-blue-400'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+              ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300'
+              : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700'
           }`}
           title="Developer Tools (F12)"
         >
@@ -258,7 +258,7 @@ export function AddressBar({ onNavigate, url, onOpenSettings }: AddressBarProps)
         </button>
         <button
           onClick={onOpenSettings}
-          className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-1.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-700 active:scale-95 transition-all"
           title="Settings (Cmd+,)"
         >
           &#9881;

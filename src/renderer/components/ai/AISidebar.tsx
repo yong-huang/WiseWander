@@ -143,7 +143,7 @@ export function AISidebar({
   ]
 
   return (
-    <div className="flex w-[340px] shrink-0 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex w-[340px] shrink-0 flex-col border-l border-gray-200/80 bg-white shadow-[-4px_0_16px_rgb(16_24_40/0.03)] dark:border-gray-700/80 dark:bg-gray-900 dark:shadow-[-4px_0_16px_rgb(0_0_0/0.25)] animate-fade-in">
       {/* Header with tabs */}
       <div className="flex items-center border-b border-gray-200 dark:border-gray-700">
         <div className="flex flex-1 items-center overflow-x-auto px-1 py-1 gap-0.5">
@@ -155,12 +155,12 @@ export function AISidebar({
               )}
               <button
                 onClick={() => onTabChange(tab.id)}
-                className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all duration-150 ${
                   activeTab === tab.id
                     ? tab.group === 'ai'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                      : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                      : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
                 }`}
               >
                 {tab.label}
