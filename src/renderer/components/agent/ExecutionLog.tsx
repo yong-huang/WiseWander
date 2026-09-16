@@ -13,10 +13,14 @@ export function ExecutionLog({ task, liveNotes = [] }: ExecutionLogProps): React
         Task: {task.description}
       </h4>
 
-      {/* Live agent-loop notes (thoughts & observations streamed per iteration) */}
-      {liveNotes.length > 0 && (
+      {/* Live agent-loop notes. Thoughts always show; observation echoes of
+          step outputs ("click ok: …" / "click FAILED: …") are hidden because
+          the step cards below already display them. */}
+      {liveNotes.filter((n) => n.kind === 'thought' || !/^[a-z_]+ (ok|FAILED): /.test(n.text)).length > 0 && (
         <div className="mb-2 space-y-1 rounded-lg border border-indigo-200/70 bg-indigo-50/60 p-2 dark:border-indigo-500/30 dark:bg-indigo-500/10">
-          {liveNotes.map((note, i) => (
+          {liveNotes
+            .filter((n) => n.kind === 'thought' || !/^[a-z_]+ (ok|FAILED): /.test(n.text))
+            .map((note, i) => (
             <div key={i} className="flex gap-1.5 text-[11px] leading-snug">
               <span className={note.kind === 'thought' ? 'font-semibold text-indigo-600 dark:text-indigo-300' : 'font-semibold text-gray-400 dark:text-gray-500'}>
                 {note.kind === 'thought' ? '💭' : '👁'}
@@ -25,7 +29,7 @@ export function ExecutionLog({ task, liveNotes = [] }: ExecutionLogProps): React
                 {note.text}
               </span>
             </div>
-          ))}
+            ))}
         </div>
       )}
 

@@ -16,7 +16,7 @@ export const BROWSER_ASSISTANT_ID = '__assistant__'
 
 // Agent loop budgets (hard limits — see docs/AGENT_EVOLUTION.md §6.6)
 export const AGENT_MAX_ITERATIONS = 15
-export const AGENT_MAX_WALL_MS = 180_000
+export const AGENT_MAX_WALL_MS = 600_000 // excludes time waiting for the user
 export const AGENT_MAX_PROMPT_CHARS = 160_000 // ≈40k tokens of cumulative prompt traffic
 export const AGENT_PAGE_MAX_ELEMENTS = 120
 export const AGENT_PAGE_TEXT_CHARS = 4_000
@@ -26,6 +26,8 @@ export const AGENT_REPROMPT_LIMIT = 2
 export const AGENT_MAX_IDENTICAL_FAILURES = 2 // block the exact same failing action after N failures
 export const AGENT_MAX_SELF_CHECK_CONTINUATIONS = 2
 export const AGENT_CONFIRM_TIMEOUT_MS = 120_000
+export const AGENT_MAX_ASKS = 3 // clarifying questions per run
+export const AGENT_ASK_TIMEOUT_MS = 300_000 // silence → "proceed with best judgment"
 export const AGENT_STEP_OUTPUT_DB_CHARS = 4_000 // step output truncation before persisting
 export const AGENT_HISTORY_DEFAULT_LIMIT = 20
 export const AGENT_SITE_NOTE_LIMIT = 5 // notes kept per domain

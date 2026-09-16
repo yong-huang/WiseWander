@@ -122,6 +122,8 @@ async function runController(opts: {
     })(),
     budgets: opts.budgets,
     confirm: opts.confirm,
+    onAsk: opts.onAsk,
+    onOpenTab: opts.onOpenTab,
   })
   const result = await controller.run()
   return { result, events, calls }
@@ -386,5 +388,81 @@ describe('AgentController', () => {
       },
     })
     expect(capturedUserPrompt).not.toContain('Hints from previous runs')
+  })
+
+  // ── Phase 4: ask_user / open_tab (browser-first steering) ──
+
+  it('asks the user, feeds the answer back, and continues', async () => {
+    const asked: string[] = []
+    const { result } = await runController({
+      replies: [
+        '{"thought":"ambiguous","action":"ask_user","params":{"question":"Videos or written docs?"}}',
+        '{"thought":"user said videos, search","action":"navigate","params":{"url":"https://example.com/videos"}}',
+        '{"thought":"done","action":"done","report":"found video resources"}',
+      ],
+      onAsk: async (question) => {
+        asked.push(question)
+        return 'videos please'
+      },
+    })
+    expect(asked).toEqual(['Videos or written docs?'])
+    expect(result.status).toBe('completed')
+    expect(result.report).toBe('found video resources')
+  })
+
+  it('caps clarifying questions and forces the model to proceed', async () => {
+    const answers: string[] = []
+    const { result } = await runController({
+      replies: [
+        '{"action":"ask_user","params":{"question":"q1"}}',
+        '{"action":"ask_user","params":{"question":"q2"}}',
+        '{"action":"ask_user","params":{"question":"q3"}}',
+        '{"action":"ask_user","params":{"question":"q4"}}',
+        '{"action":"done","report":"proceeded with judgment"}',
+      ],
+      onAsk: async (q) => {
+        answers.push(q)
+        return 'ans'
+      },
+    })
+    expect(answers).toHaveLength(3) // capped at 3
+    expect(result.status).toBe('completed')
+    expect(result.report).toBe('proceeded with judgment')
+  })
+
+  it('opens pages in new tabs via open_tab', async () => {
+    const opened: string[] = []
+    const { result } = await runController({
+      replies: [
+        '{"thought":"open the tutorial","action":"open_tab","params":{"url":"https://docs.python.org/zh-cn/"}}',
+        '{"thought":"open one more","action":"open_tab","params":{"url":"https://www.runoob.com/python/"}}',
+        '{"thought":"done","action":"done","report":"Opened 2 python resources in tabs"}',
+      ],
+      pageUrl: 'https://www.bing.com/search?q=python',
+      onOpenTab: async (url) => {
+        opened.push(url)
+      },
+    })
+    expect(opened).toEqual(['https://docs.python.org/zh-cn/', 'https://www.runoob.com/python/'])
+    expect(result.status).toBe('completed')
+    expect(result.report).toContain('Opened 2 python resources')
+  })
+
+  it('gates cross-domain open_tab on user denial', async () => {
+    const denied: string[] = []
+    const { result } = await runController({
+      replies: [
+        '{"action":"open_tab","params":{"url":"https://external-site.org/x"}}',
+        '{"thought":"finish","action":"done","report":"stopped after denial"}',
+      ],
+      pageUrl: 'https://www.bing.com/search?q=x',
+      confirm: async (message) => {
+        denied.push(message)
+        return false
+      },
+    })
+    expect(denied).toHaveLength(1)
+    expect(denied[0]).toContain('external-site.org')
+    expect(result.status).toBe('completed')
   })
 })

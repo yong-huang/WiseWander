@@ -242,3 +242,27 @@ The controller selects per model capability and records which path was used in t
 | D3 | Dual-path structured output | Native Ollama tools where supported; JSON repair as fallback covers every model |
 | D4 | Local-only for agent reasoning by default | Privacy stance (PRD PV-002); cloud via explicit configuration only |
 | D5 | Hard budgets in Phase 1 | Autonomy without limits is a safety and cost bug, not a feature |
+
+---
+
+## 12. Phase 4 — Browser-first steering & human-in-the-loop (implemented 2026-09-15)
+
+User-driven additions beyond the original plan, built on the Phase 1-3 machinery:
+
+| Capability | Behavior |
+|------|------|
+| `ask_user` built-in action | The agent pauses and asks a clarifying question; the renderer shows an input card, the user's reply is fed back as the observation. Max 3 per run; 5-min silence → "proceed with best judgment". |
+| `open_tab` built-in action | The agent opens a URL in a NEW browser tab for the user (renderer creates a real tab via tab-store). Cross-domain opens pass the confirmation gate. |
+| Browser-first steering | System prompt: act in the browser over writing text; find-goals must OPEN the best pages (2-4) rather than paste content lists; ambiguous goals get one batched ask_user first. |
+| Deterministic find-intent gate | If the goal matches find/collect intent (regex incl. Chinese) and zero pages were opened, "done" is rejected at the controller level (up to 2 reminders) — independent of model judgment. |
+| Click-ineffectiveness guard | A click that reports success but leaves the page unchanged 3 times triggers a deterministic redirect: "stop clicking, navigate to the results URL directly". |
+| User-wait time exclusion | Confirmation/ask waiting time does not consume the wall-clock budget (10 min). |
+
+### Model comparison (real runs, same task)
+
+| Model | Behavior |
+|------|------|
+| qwen3.8:latest (17.7GB) | Tool calls work but steering is unstable: stuck in type/click loops on bing, ignored open_tab, wandered into the site's login page |
+| qwen3.5:35b-a3b-coding-nvfp4 (21.9GB, MoE) | With the deterministic gate + steering: search → extract results → opened the best resource page via open_tab → clean done report. Fast on Apple Silicon (MoE, ~3-4s per step). |
+
+Conclusion: the loop machinery is model-agnostic; **behavioral quality on real pages is bounded by the model**. Recommended: qwen3.5:35b-a3b on capable hardware.

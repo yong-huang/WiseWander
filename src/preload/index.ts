@@ -54,6 +54,13 @@ const api = {
   agentCancel: (taskId?: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_CANCEL, taskId),
   agentConfirm: (taskId: string, approved: boolean) =>
     ipcRenderer.invoke(IPC_CHANNELS.AGENT_CONFIRM, taskId, approved),
+  agentAnswer: (taskId: string, answer: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.AGENT_ANSWER, taskId, answer),
+  onAgentOpenTab: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { url: string }) => callback(data.url)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_OPEN_TAB, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.AGENT_OPEN_TAB, handler)
+  },
   agentHistoryList: (limit?: number) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_HISTORY_LIST, limit),
   agentHistoryGet: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_HISTORY_GET, id),
   onAgentStep: (callback: (data: unknown) => void) => {

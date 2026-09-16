@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AgentTask, AgentStep } from '@shared/types'
+import { NEW_TAB_URL } from '../../shared/constants'
 import { useTabStore } from './tab-store'
 
 /** Non-hook helper: read the active tab id outside React render. */
@@ -28,6 +29,8 @@ interface TabAgentState {
   budget: AgentBudget | null
   /** Non-null while the agent waits for the user to approve a risky action. */
   pendingConfirmation: { taskId: string; message: string } | null
+  /** Non-null while the agent waits for the user's reply to a question. */
+  pendingAsk: { taskId: string; question: string } | null
 }
 
 interface AgentActions {
@@ -36,6 +39,7 @@ interface AgentActions {
   executeTask: (tabId: string, description: string) => Promise<void>
   cancelTask: (tabId: string) => Promise<void>
   answerConfirmation: (tabId: string, approved: boolean) => Promise<void>
+  answerAsk: (tabId: string, answer: string) => Promise<void>
   setActiveTask: (tabId: string, task: AgentTask | null) => void
   updateStep: (tabId: string, taskId: string, step: AgentStep) => void
   setupStepListener: () => () => void
@@ -52,6 +56,7 @@ const defaultTabState = (): TabAgentState => ({
   liveNotes: [],
   budget: null,
   pendingConfirmation: null,
+  pendingAsk: null,
 })
 
 let stepListenerCleanup: (() => void) | null = null
@@ -72,6 +77,43 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     })
 
     try {
+      // If the active tab is a blank new tab, materialize it with a search for
+      // the task description so the agent has a real page to perceive and act
+      // on (the agent tools run inside the tab's webview).
+      const { tabs, updateTab } = useTabStore.getState()
+      const tab = tabs.find((t) => t.id === tabId)
+      const isBlank =
+        !tab || tab.url === NEW_TAB_URL || tab.url.startsWith('about:') || tab.url.startsWith('wisewander://')
+      if (isBlank) {
+        set((state) => {
+          const sessions = new Map(state.sessions)
+          const s = sessions.get(tabId) ?? defaultTabState()
+          sessions.set(tabId, {
+            ...s,
+            liveNotes: [
+              ...s.liveNotes,
+              { kind: 'thought' as const, iteration: 0, text: 'Opening a search page for this task…' },
+            ],
+          })
+          return { sessions }
+        })
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(description)}`
+        updateTab(tabId, { url: searchUrl, status: 'loading' })
+        // Wait for the webview guest to attach so getWebContentsId() works
+        for (let i = 0; i < 24; i++) {
+          await new Promise((r) => setTimeout(r, 250))
+          const wv = document.querySelector(`webview[data-tab-id="${tabId}"]`) as Electron.WebviewTag | null
+          if (wv) {
+            try {
+              wv.getWebContentsId()
+              break
+            } catch {
+              // guest not ready yet
+            }
+          }
+        }
+      }
+
       const activeWebview = document.querySelector(
         `webview[data-tab-id="${tabId}"]`
       ) as Electron.WebviewTag | null
@@ -92,6 +134,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             liveNotes: [],
             budget: null,
             pendingConfirmation: null,
+            pendingAsk: null,
           })
           return { sessions }
         })
@@ -138,6 +181,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         liveNotes: s.liveNotes,
         budget: null,
         pendingConfirmation: null,
+        pendingAsk: null,
       })
       return { sessions }
     })
@@ -156,6 +200,23 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       const sessions = new Map(state.sessions)
       const s = sessions.get(tabId) ?? defaultTabState()
       sessions.set(tabId, { ...s, pendingConfirmation: null })
+      return { sessions }
+    })
+  },
+
+  answerAsk: async (tabId: string, answer: string) => {
+    const session = get().sessions.get(tabId)
+    const pending = session?.pendingAsk
+    if (!pending) return
+    try {
+      await window.api.agentAnswer(pending.taskId, answer)
+    } catch (error) {
+      console.error('Failed to answer agent question:', error)
+    }
+    set((state) => {
+      const sessions = new Map(state.sessions)
+      const s = sessions.get(tabId) ?? defaultTabState()
+      sessions.set(tabId, { ...s, pendingAsk: null })
       return { sessions }
     })
   },
@@ -199,6 +260,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         liveNotes: s.liveNotes,
         budget: s.budget,
         pendingConfirmation: s.pendingConfirmation,
+        pendingAsk: s.pendingAsk,
       })
       return { sessions }
     })
@@ -217,9 +279,31 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         type?: string
         iteration?: number
         text?: string
+        url?: string
         step?: AgentStep
         taskStatus?: AgentTask['status']
         result?: unknown
+      }
+
+      // Agent asks the user a clarifying question
+      if (stepData.type === 'ask') {
+        const tabId = stepData.tabId ?? getActiveTabId() ?? ''
+        set((state) => {
+          const sessions = new Map(state.sessions)
+          const s = sessions.get(tabId) ?? defaultTabState()
+          sessions.set(tabId, {
+            ...s,
+            pendingAsk: { taskId: stepData.taskId ?? '', question: stepData.text ?? '' },
+          })
+          return { sessions }
+        })
+        return
+      }
+
+      // Agent opens a real browser tab for the user
+      if (stepData.type === 'open_tab' && typeof stepData.url === 'string') {
+        void useTabStore.getState().createTab(stepData.url)
+        return
       }
 
       // Confirmation gate: surface the pending decision to the user
@@ -312,6 +396,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
             liveNotes: s.liveNotes,
             budget: s.budget,
             pendingConfirmation: s.pendingConfirmation,
+            pendingAsk: s.pendingAsk,
           })
           return { sessions }
         })

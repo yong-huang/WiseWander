@@ -103,16 +103,15 @@ export const typeTool: AgentTool = {
           if (element.isContentEditable) {
             element.innerHTML = '';
           } else {
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-              window.HTMLInputElement.prototype,
-              'value'
-            )?.set || Object.getOwnPropertyDescriptor(
-              window.HTMLTextAreaElement.prototype,
-              'value'
-            )?.set;
+            // Use the prototype that matches the element — applying the
+            // HTMLInputElement setter to a <textarea> throws Illegal invocation.
+            const Proto = element instanceof HTMLTextAreaElement
+              ? window.HTMLTextAreaElement.prototype
+              : window.HTMLInputElement.prototype;
+            const nativeValueSetter = Object.getOwnPropertyDescriptor(Proto, 'value')?.set;
 
-            if (nativeInputValueSetter) {
-              nativeInputValueSetter.call(element, '');
+            if (nativeValueSetter) {
+              nativeValueSetter.call(element, '');
             } else {
               element.value = '';
             }
@@ -124,16 +123,13 @@ export const typeTool: AgentTool = {
         if (element.isContentEditable) {
           element.textContent = textValue;
         } else {
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-            window.HTMLInputElement.prototype,
-            'value'
-          )?.set || Object.getOwnPropertyDescriptor(
-            window.HTMLTextAreaElement.prototype,
-            'value'
-          )?.set;
+          const Proto = element instanceof HTMLTextAreaElement
+            ? window.HTMLTextAreaElement.prototype
+            : window.HTMLInputElement.prototype;
+          const nativeValueSetter = Object.getOwnPropertyDescriptor(Proto, 'value')?.set;
 
-          if (nativeInputValueSetter) {
-            nativeInputValueSetter.call(element, textValue);
+          if (nativeValueSetter) {
+            nativeValueSetter.call(element, textValue);
           } else {
             element.value = textValue;
           }

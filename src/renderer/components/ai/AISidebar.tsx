@@ -80,9 +80,11 @@ export function AISidebar({
   const liveNotes = agentSession.liveNotes
   const agentBudget = agentSession.budget
   const pendingConfirmation = agentSession.pendingConfirmation
+  const pendingAsk = agentSession.pendingAsk
   const executeTask = useCallback((desc: string) => agentStore.executeTask(tabId, desc), [tabId, agentStore])
   const cancelTask = useCallback(() => agentStore.cancelTask(tabId), [tabId, agentStore])
   const answerConfirmation = useCallback((approved: boolean) => agentStore.answerConfirmation(tabId, approved), [tabId, agentStore])
+  const answerAsk = useCallback((answer: string) => agentStore.answerAsk(tabId, answer), [tabId, agentStore])
   const selectTask = useCallback((task: AgentTask) => agentStore.setActiveTask(tabId, task), [tabId, agentStore])
 
   const conversation = conversations.get(tabId)
@@ -216,7 +218,7 @@ export function AISidebar({
           />
         )}
         {activeTab === 'agent' && (
-          <AgentPanel tasks={agentSession.tasks} activeTask={agentSession.activeTask} isExecuting={isExecuting} liveNotes={liveNotes} budget={agentBudget} pendingConfirmation={pendingConfirmation} onExecute={executeTask} onCancel={cancelTask} onAnswerConfirmation={answerConfirmation} onSelectTask={selectTask} />
+          <AgentPanel tasks={agentSession.tasks} activeTask={agentSession.activeTask} isExecuting={isExecuting} liveNotes={liveNotes} budget={agentBudget} pendingConfirmation={pendingConfirmation} pendingAsk={pendingAsk} onExecute={executeTask} onCancel={cancelTask} onAnswerConfirmation={answerConfirmation} onAnswerAsk={answerAsk} onSelectTask={selectTask} />
         )}
         {activeTab === 'research' && (
           <ResearchPanel />

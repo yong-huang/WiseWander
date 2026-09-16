@@ -22,6 +22,9 @@ const activeTasks = new Map<string, AbortController>()
 /** Pending confirmation resolvers, keyed by task id (user gates, AT-003). */
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 
+/** Pending clarifying-question resolvers, keyed by task id. */
+const pendingAsks = new Map<string, (answer: string) => void>()
+
 /** Lazily created — getDatabase() requires the app to be ready. */
 let runStore: AgentRunStore | null = null
 function getRunStore(): AgentRunStore {
@@ -69,7 +72,10 @@ export function registerAgentIpc(): void {
           description,
           steps: [],
           status: 'failed',
-          result: { success: false, error: 'No active page to act on.' },
+          result: {
+            success: false,
+            error: 'No active web page to act on. The agent works on the current tab — open a website first, then run the task again.',
+          },
         }
       }
       const toolContext: ControllerToolContext = {
@@ -112,6 +118,26 @@ export function registerAgentIpc(): void {
         })
       }
 
+      // Clarifying questions pause the loop until the user answers.
+      const askUser = async (question: string): Promise<string> => {
+        const answer = new Promise<string>((resolve) => {
+          pendingAsks.set(task.id, resolve)
+          setTimeout(() => {
+            if (pendingAsks.has(task.id)) {
+              pendingAsks.delete(task.id)
+              resolve('(user did not respond; proceed with your best judgment)')
+            }
+          }, 300_000)
+        })
+        return answer
+      }
+
+      // open_tab asks the renderer to create a real browser tab (fire-and-forget).
+      const openTab = async (url: string): Promise<void> => {
+        win?.webContents.send(IPC_CHANNELS.AGENT_OPEN_TAB, { tabId, url })
+        await new Promise((r) => setTimeout(r, 150)) // let the renderer start creating the tab
+      }
+
       // Phase 3 memory: persist the run and inject site experience hints.
       let runId: string | null = null
       let siteHints: string[] = []
@@ -125,7 +151,11 @@ export function registerAgentIpc(): void {
         const emitting = (payload: ControllerEvent): void => {
           emit(payload)
           if (payload.type === 'action' && runId) {
-            store.recordStep(runId, payload.iteration, payload.step.tool, payload.step.input, payload.step.status)
+            if (payload.step.status === 'running') {
+              store.recordStep(runId, payload.iteration, payload.step.tool, payload.step.input, 'running')
+            } else {
+              store.updateStepStatus(runId, payload.iteration, payload.step.status, payload.step.output)
+            }
           }
         }
 
@@ -140,6 +170,8 @@ export function registerAgentIpc(): void {
           emit: emitting,
           signal: abort.signal,
           confirm: requestConfirmation,
+          onAsk: askUser,
+          onOpenTab: openTab,
           siteHints,
         })
 
@@ -183,12 +215,16 @@ export function registerAgentIpc(): void {
       activeTasks.get(taskId)?.abort()
       pendingConfirms.get(taskId)?.(false)
       pendingConfirms.delete(taskId)
+      pendingAsks.get(taskId)?.('(task cancelled)')
+      pendingAsks.delete(taskId)
     } else {
       for (const controller of activeTasks.values()) {
         controller.abort()
       }
       for (const resolve of pendingConfirms.values()) resolve(false)
       pendingConfirms.clear()
+      for (const resolve of pendingAsks.values()) resolve('(task cancelled)')
+      pendingAsks.clear()
     }
   })
 
@@ -207,6 +243,16 @@ export function registerAgentIpc(): void {
     if (resolve) {
       pendingConfirms.delete(taskId)
       resolve(Boolean(approved))
+    }
+    return { success: true }
+  })
+
+  // ── User reply to an agent clarifying question ──
+  ipcMain.handle(IPC_CHANNELS.AGENT_ANSWER, (_event, taskId: string, answer: string) => {
+    const resolve = pendingAsks.get(taskId)
+    if (resolve) {
+      pendingAsks.delete(taskId)
+      resolve(String(answer ?? ''))
     }
     return { success: true }
   })

@@ -9,6 +9,11 @@ interface PendingConfirmation {
   message: string
 }
 
+interface PendingAsk {
+  taskId: string
+  question: string
+}
+
 interface AgentPanelProps {
   tasks: AgentTask[]
   activeTask: AgentTask | null
@@ -16,9 +21,11 @@ interface AgentPanelProps {
   liveNotes?: AgentLiveNote[]
   budget?: AgentBudget | null
   pendingConfirmation?: PendingConfirmation | null
+  pendingAsk?: PendingAsk | null
   onExecute: (description: string) => void
   onCancel: () => void
   onAnswerConfirmation: (approved: boolean) => void
+  onAnswerAsk: (answer: string) => void
   onSelectTask: (task: AgentTask) => void
 }
 
@@ -36,13 +43,23 @@ export function AgentPanel({
   liveNotes = [],
   budget = null,
   pendingConfirmation = null,
+  pendingAsk = null,
   onExecute,
   onCancel,
   onAnswerConfirmation,
+  onAnswerAsk,
   onSelectTask,
 }: AgentPanelProps): React.ReactElement {
   const [input, setInput] = useState('')
   const [view, setView] = useState<'input' | 'tasks'>('input')
+  const [askInput, setAskInput] = useState('')
+
+  const submitAnswer = (): void => {
+    const answer = askInput.trim()
+    if (!answer) return
+    onAnswerAsk(answer)
+    setAskInput('')
+  }
   const [history, setHistory] = useState<AgentRunSummary[]>([])
   const [expandedRun, setExpandedRun] = useState<AgentRunDetail | null>(null)
 
@@ -202,7 +219,42 @@ export function AgentPanel({
             )}
           </div>
 
-          {/* Confirmation gate (AT-003): risky action awaiting user decision */}
+          {/* Clarifying question from the agent — user reply feeds back into the loop */}
+      {isExecuting && pendingAsk && (
+        <div className="mx-3 mb-2 rounded-xl border border-indigo-300 bg-indigo-50/80 p-2.5 dark:border-indigo-500/40 dark:bg-indigo-500/10 animate-slide-up">
+          <div className="flex items-start gap-2">
+            <span aria-hidden>💬</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                The agent needs your input
+              </p>
+              <p className="mt-0.5 break-words text-[11px] text-indigo-700/90 dark:text-indigo-200/90">
+                {pendingAsk.question}
+              </p>
+              <div className="mt-2 flex gap-1.5">
+                <input
+                  type="text"
+                  value={askInput}
+                  onChange={(e) => setAskInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && submitAnswer()}
+                  placeholder="Type your answer…"
+                  className="min-w-0 flex-1 rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-[11px] focus:outline-none focus:border-indigo-400 dark:border-indigo-500/40 dark:bg-gray-800 dark:text-gray-100"
+                  autoFocus
+                />
+                <button
+                  onClick={submitAnswer}
+                  disabled={!askInput.trim()}
+                  className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-indigo-700 active:scale-95 disabled:opacity-40 transition-all"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation gate (AT-003): risky action awaiting user decision */}
       {isExecuting && pendingConfirmation && (
         <div className="mx-3 mb-2 rounded-xl border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-500/40 dark:bg-amber-500/10 animate-slide-up">
           <div className="flex items-start gap-2">

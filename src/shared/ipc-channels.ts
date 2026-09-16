@@ -26,6 +26,8 @@ export const IPC_CHANNELS = {
   AGENT_STEP_UPDATE: 'agent:step',
   AGENT_CANCEL: 'agent:cancel',
   AGENT_CONFIRM: 'agent:confirm',
+  AGENT_ANSWER: 'agent:answer',
+  AGENT_OPEN_TAB: 'agent:open-tab',
   AGENT_HISTORY_LIST: 'agent:history:list',
   AGENT_HISTORY_GET: 'agent:history:get',
 

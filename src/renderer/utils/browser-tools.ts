@@ -459,7 +459,20 @@ export async function executeToolCall(call: ParsedToolCall): Promise<ToolResult>
         if (isInternalPage()) return { success: false, display: 'Cannot summarize internal pages. Please navigate to a website first.' }
         const { activeTabId } = useTabStore.getState()
         if (!activeTabId) return { success: false, display: 'Error: no active tab' }
-        const result = await window.api.aiSummarize(activeTabId) as { text: string }
+        // Extract the page content here — the main-process handler requires it
+        let pageContext: unknown
+        try {
+          pageContext = await Promise.race([
+            extractPageContext(activeTabId),
+            new Promise((_resolve, reject) => setTimeout(() => reject(new Error('page extraction timed out')), 8000)),
+          ])
+        } catch {
+          pageContext = undefined
+        }
+        if (!pageContext) {
+          return { success: false, display: 'Could not read the page content. The page may still be loading or uses a non-standard structure — try again once it finishes loading.' }
+        }
+        const result = await window.api.aiSummarize(activeTabId, pageContext) as { text: string }
         return { success: true, display: result.text ?? 'No summary available' }
       }
 

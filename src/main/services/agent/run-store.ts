@@ -62,6 +62,19 @@ export class AgentRunStore {
       )
   }
 
+  updateStepStatus(
+    runId: string,
+    iteration: number,
+    status: AgentStep['status'],
+    output?: unknown
+  ): void {
+    this.db
+      .prepare(
+        `UPDATE agent_steps SET status = ?, output = ? WHERE run_id = ? AND iteration = ?`
+      )
+      .run(status, output === undefined ? null : truncate(JSON.stringify(output), AGENT_STEP_OUTPUT_DB_CHARS), runId, iteration)
+  }
+
   finishRun(
     id: string,
     status: string,
